@@ -322,17 +322,33 @@ class AudioManager {
     if (!this.ctx || !this.musicEnabled) return
     this.stopMusic()
     const sr = this.ctx.sampleRate
-    const duration = 4.0
+    const duration = 8.0 // longer loop
     const len = Math.floor(sr * duration)
     const buf = this.ctx.createBuffer(1, len, sr)
     const data = buf.getChannelData(0)
-    // loop suave de fábrica: tonos bajos aleatorios
+    // Bass line: steady pulse (60bpm feel) at 55Hz (A1) and 110Hz (A2)
+    // Melodic line: pentatonic A minor riff (A C D E G) — 220, 261, 293, 329, 392 Hz
+    const melodyNotes = [220, 261, 293, 329, 392, 329, 293, 261]
+    const noteDuration = duration / melodyNotes.length
     for (let i = 0; i < len; i++) {
       const t = i / sr
-      const s1 = 0.05 * Math.sin(2 * Math.PI * 110 * t)
-      const s2 = 0.03 * Math.sin(2 * Math.PI * 55 * t + Math.sin(t * 0.3))
-      const noise = 0.02 * (Math.random() * 2 - 1)
-      data[i] = s1 + s2 + noise
+      const noteIdx = Math.floor(t / noteDuration) % melodyNotes.length
+      const noteF = melodyNotes[noteIdx]
+      const localT = (t % noteDuration)
+      // Bass
+      const bassEnv = Math.exp(-1.5 * (localT % 1))
+      const bass = 0.06 * bassEnv * Math.sin(2 * Math.PI * 55 * t)
+      // Melody (sine + slight detune)
+      const melodyEnv = Math.exp(-2 * (localT % noteDuration))
+      const melody = 0.04 * melodyEnv * (
+        Math.sin(2 * Math.PI * noteF * t) +
+        0.3 * Math.sin(2 * Math.PI * noteF * 1.005 * t)
+      )
+      // Pad: slow LFO modulated drone
+      const pad = 0.02 * Math.sin(2 * Math.PI * 110 * t + Math.sin(t * 0.2) * 2)
+      // Soft noise (hi-hat feel)
+      const noise = 0.008 * (Math.random() * 2 - 1) * Math.exp(-15 * (localT % 0.5))
+      data[i] = bass + melody + pad + noise
     }
     const src = this.ctx.createBufferSource()
     src.buffer = buf

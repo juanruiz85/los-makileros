@@ -92,6 +92,8 @@ export type EventKind =
   | 'gringo'
   | 'gossip'
   | 'quality-audit'
+  | 'client-visit'
+  | 'supervisor-rampage'
 
 export interface GameEvent {
   id: string

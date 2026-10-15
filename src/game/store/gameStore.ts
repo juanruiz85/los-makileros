@@ -24,6 +24,7 @@ import { SeededRandom } from '@/lib/random'
 import { generateTicket } from '@/lib/tickets'
 import { useAchievementStore } from './achievementStore'
 import { useDailyChallengeStore } from './dailyChallengeStore'
+import { useEventStore } from './eventStore'
 
 interface GameStoreState {
   // Pantalla y modo
@@ -308,6 +309,8 @@ export const useGameStore = create<GameStoreState>()(
           tacosConsumed: achStore.tacosConsumed,
           dailyStreak: dailyStore.streak,
           dailyCompletedTotal: dailyStore.totalCompleted,
+          clientVisits: achStore.clientVisits,
+          supervisorRampages: achStore.supervisorRampages,
         })
       },
 
@@ -334,6 +337,11 @@ export const useGameStore = create<GameStoreState>()(
         // Variant multipliers on ticket completion
         let ticketScore = s.currentTicket.baseScore + setupBonus
         if (s.currentTicket.variant === 'client-visit') {
+          ticketScore = Math.floor(ticketScore * 2)
+        }
+        // Special event: client visit doubles all tickets
+        const eventStore = useEventStore.getState()
+        if (eventStore.clientVisitActive) {
           ticketScore = Math.floor(ticketScore * 2)
         }
         const newScore = s.score + ticketScore
@@ -390,6 +398,8 @@ export const useGameStore = create<GameStoreState>()(
           tacosConsumed: achStore.tacosConsumed,
           dailyStreak: dailyStore.streak,
           dailyCompletedTotal: dailyStore.totalCompleted,
+          clientVisits: achStore.clientVisits,
+          supervisorRampages: achStore.supervisorRampages,
         })
         get().loadNextTicket()
       },

@@ -20,6 +20,7 @@ export function useGameLoop() {
     let last = performance.now()
     let eventCheckAccum = 0
     let gringoCheckAccum = 0
+    let specialEventAccum = 0
 
     const loop = (now: number) => {
       const delta = (now - last) / 1000
@@ -32,8 +33,9 @@ export function useGameLoop() {
         tick(delta)
       }
 
-      // Limpia subtítulos expirados
+      // Limpia subtítulos expirados + special events expirados
       useEventStore.getState().clearExpiredSubtitles(now)
+      useEventStore.getState().clearExpiredSpecialEvents(now)
 
       // Spawnea eventos aleatorios cada 5s
       if (screen === 'playing') {
@@ -77,6 +79,42 @@ export function useGameLoop() {
             // Aplica el reinicio del timer
             useGameStore.getState().triggerGringo()
             useGameStore.getState().breakCombo()
+          }
+        }
+
+        // Special events: client visit & supervisor rampage (cada 30s check)
+        specialEventAccum += delta
+        if (specialEventAccum >= 30) {
+          specialEventAccum = 0
+          const elapsed = useGameStore.getState().runStats.timePlayedSec
+          const eventStore = useEventStore.getState()
+          // Only after 60s elapsed and not in free mode
+          if (elapsed > 60 && mode !== 'free') {
+            // Client visit: 12% chance, not if already active
+            if (!eventStore.clientVisitActive && Math.random() < 0.12) {
+              eventStore.spawnClientVisit()
+              audio.play('combo-chime')
+            }
+            // Supervisor rampage: 8% chance in normal, 18% in chaos, not if already active
+            else if (!eventStore.supervisorRampageActive) {
+              const rampageProb = mode === 'chaos' ? 0.18 : 0.08
+              if (Math.random() < rampageProb) {
+                eventStore.spawnSupervisorRampage()
+                audio.play('supervisor-angry')
+              }
+            }
+          }
+        }
+
+        // During supervisor rampage, spawn angry supervisor every 20s
+        if (screen === 'playing' && useEventStore.getState().supervisorRampageActive) {
+          // Use a ref-less counter via store check: every ~20s within rampage
+          const now2 = performance.now()
+          const lastAngryAt = useEventStore.getState().lastSupervisorWarnAt
+          if (now2 - lastAngryAt > 20000) {
+            useEventStore.getState().spawnSupervisorAngry()
+            audio.play('supervisor-angry')
+            useGameStore.getState().loseTime(5)
           }
         }
       }

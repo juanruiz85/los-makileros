@@ -1,5 +1,5 @@
 // src/game/store/eventStore.ts
-// Eventos aleatorios: Supervisor, Mantenimiento, Gringo, Chisme, Calidad
+// Eventos aleatorios: Supervisor, Mantenimiento, Gringo, Chisme, Calidad, Cliente, Rampage
 
 'use client'
 
@@ -11,7 +11,10 @@ import {
   GOSSIP_PHRASES,
   SUPERVISOR_ANGRY_PHRASES,
   SUPERVISOR_WARN_PHRASES,
+  CLIENT_VISIT_PHRASES,
+  SUPERVISOR_RAMPAGE_PHRASES,
 } from '../constants'
+import { useAchievementStore } from './achievementStore'
 
 let evSeq = 0
 const nextEvId = () => `ev-${Date.now().toString(36)}-${evSeq++}`
@@ -21,6 +24,11 @@ interface EventStoreState {
   gringoCooldownUntil: number
   lastGossipAt: number
   lastSupervisorWarnAt: number
+  // Special events persistent during session
+  supervisorRampageActive: boolean
+  supervisorRampageUntil: number
+  clientVisitActive: boolean
+  clientVisitUntil: number
   // frases activas para mostrar subtítulos
   currentSubtitle: { text: string; color?: string; until: number } | null
   // Acciones
@@ -32,8 +40,11 @@ interface EventStoreState {
   spawnGossip: () => void
   spawnMaintenance: () => void
   spawnQualityAudit: () => void
+  spawnClientVisit: () => void
+  spawnSupervisorRampage: () => void
   setSubtitle: (text: string, color: string, durationMs: number) => void
   clearExpiredSubtitles: (now: number) => void
+  clearExpiredSpecialEvents: (now: number) => void
   reset: () => void
 }
 
@@ -42,6 +53,10 @@ export const useEventStore = create<EventStoreState>((set, get) => ({
   gringoCooldownUntil: 0,
   lastGossipAt: 0,
   lastSupervisorWarnAt: 0,
+  supervisorRampageActive: false,
+  supervisorRampageUntil: 0,
+  clientVisitActive: false,
+  clientVisitUntil: 0,
   currentSubtitle: null,
 
   spawnEvent: (kind, payload) =>
@@ -102,6 +117,36 @@ export const useEventStore = create<EventStoreState>((set, get) => ({
     get().spawnEvent('quality-audit', {})
   },
 
+  spawnClientVisit: () => {
+    const now = performance.now()
+    const phrase = CLIENT_VISIT_PHRASES[Math.floor(Math.random() * CLIENT_VISIT_PHRASES.length)]
+    // Client visit lasts 60s during which score is doubled on completed tickets
+    set({
+      clientVisitActive: true,
+      clientVisitUntil: now + 60000,
+    })
+    get().spawnEvent('client-visit', { phrase })
+    get().setSubtitle(`👀 ${phrase}`, 'text-emerald-400', 6000)
+    // Track cumulative for achievements
+    const achStore = useAchievementStore.getState()
+    achStore.addCumulativeStats({ clientVisits: 1 })
+  },
+
+  spawnSupervisorRampage: () => {
+    const now = performance.now()
+    const phrase = SUPERVISOR_RAMPAGE_PHRASES[Math.floor(Math.random() * SUPERVISOR_RAMPAGE_PHRASES.length)]
+    // Rampage lasts 45s during which supervisor appears every 20s
+    set({
+      supervisorRampageActive: true,
+      supervisorRampageUntil: now + 45000,
+    })
+    get().spawnEvent('supervisor-rampage', { phrase })
+    get().setSubtitle(`🔥 ${phrase}`, 'text-red-500', 6000)
+    // Track cumulative for achievements
+    const achStore = useAchievementStore.getState()
+    achStore.addCumulativeStats({ supervisorRampages: 1 })
+  },
+
   setSubtitle: (text, color, durationMs) =>
     set({ currentSubtitle: { text, color, until: performance.now() + durationMs } }),
 
@@ -113,12 +158,28 @@ export const useEventStore = create<EventStoreState>((set, get) => ({
       return {}
     }),
 
+  clearExpiredSpecialEvents: (now) =>
+    set((s) => {
+      const updates: Partial<EventStoreState> = {}
+      if (s.supervisorRampageActive && now > s.supervisorRampageUntil) {
+        updates.supervisorRampageActive = false
+      }
+      if (s.clientVisitActive && now > s.clientVisitUntil) {
+        updates.clientVisitActive = false
+      }
+      return updates
+    }),
+
   reset: () =>
     set({
       activeEvents: [],
       gringoCooldownUntil: 0,
       lastGossipAt: 0,
       lastSupervisorWarnAt: 0,
+      supervisorRampageActive: false,
+      supervisorRampageUntil: 0,
+      clientVisitActive: false,
+      clientVisitUntil: 0,
       currentSubtitle: null,
     }),
 }))

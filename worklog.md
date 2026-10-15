@@ -997,3 +997,161 @@ Next agent should:
 6. Verificar siempre con agent-browser después de implementar.
 7. Mantener `bun run lint` limpio.
 8. Anexar nuevo Task ID al final de este worklog.
+
+---
+Task ID: 7-client-events-shortcuts-music
+Agent: Z.ai Code (cron-triggered autonomous agent — 7ma iteración)
+Task: Implementar personaje Cliente Visitante + modal, sistema de Eventos Especiales (día del supervisor enojado + visita del cliente), 3 logros nuevos, keyboard shortcuts, música mejorada. Verificar con agent-browser.
+
+Work Log:
+- Leí el worklog anterior (Task 6-daily-challenge-stats-queue) que confirmó Daily Challenge, Stats Dashboard, achievement queue mejorado, 23 logros.
+- Verifiqué dev server corriendo (logs exitosos, GET / 200).
+- QA inicial con agent-browser: title screen carga con todos los botones, Daily Challenge featured.
+- **Cliente Visitante character** implementado en `src/components/game/characters/CharacterLayer.tsx`:
+  - Nuevo componente ClientVisitBubble que aparece en top-right (espejo del Supervisor que está top-left)
+  - Personaje 🧑‍💼 con borde emerald + bg emerald-100
+  - Globo de diálogo emerald-600 con border emerald-300
+  - Header "👀 Cliente VIP" + frase aleatoria de CLIENT_VISIT_PHRASES
+  - Animación de rotación suave [0, -3, 3, 0] infinite
+- **Supervisor Rampage banner** en CharacterLayer:
+  - Banner centrado top-16 con bg red-600 + border yellow-400
+  - Emoji 😡 rotando [-10, 10, -10] con glow boxShadow pulsante
+  - Header "¡Día del supervisor enojado!" + frase de SUPERVISOR_RAMPAGE_PHRASES
+- **EventStore ampliado** en `src/game/store/eventStore.ts`:
+  - Nuevos campos: supervisorRampageActive, supervisorRampageUntil, clientVisitActive, clientVisitUntil
+  - Nuevas acciones: spawnClientVisit() (60s duración, score x2 en tickets completados), spawnSupervisorRampage() (45s duración, supervisor aparece cada 20s)
+  - clearExpiredSpecialEvents(now) para limpiar eventos expirados
+  - spawnClientVisit/spawnSupervisorRampage actualizan cumulative stats en achievementStore
+  - Import useAchievementStore
+- **Constants expandidos** en `src/game/constants.ts`:
+  - CLIENT_VISIT_PHRASES: 8 frases espanglish ("Hola, vengo a ver cómo va mi orden. ¿Ya está?", "I need this batch for tomorrow, please!", "Vengo de parte del corporativo. Inspección sorpresa.")
+  - SUPERVISOR_RAMPAGE_PHRASES: 5 frases ("¡HOY NO ES DÍA! ¡Todos a chambear!", "¡Se acabó el relax! ¡Movimiento, movimiento!", "¡Cero tolerancia! ¡Cero errores! ¡Cero excusas!")
+  - EVENT_DURATION_SEC ampliado con client-visit (6s) y supervisor-rampage (10s)
+- **Types ampliado**: EventKind ahora incluye 'client-visit' y 'supervisor-rampage'
+- **SpecialEventsIndicator** creado en `src/components/game/characters/SpecialEventsIndicator.tsx` (~75 líneas):
+  - Indicadores fijos top-left (debajo de TopBar) que aparecen cuando hay eventos especiales activos
+  - Client Visit: badge emerald con Eye icon pulsante + countdown "Score x2 · Xs"
+  - Supervisor Rampage: badge red-600 con Flame icon rotando + countdown "-2x errores · Xs"
+  - Re-render cada 500ms para actualizar countdown
+  - Animaciones spring de entrada/salida
+- **Game Loop ampliado** en `src/hooks/use-game-loop.ts`:
+  - Nuevo accumulator specialEventAccum que check cada 30s
+  - Solo after 60s elapsed y no en free mode
+  - Client Visit: 12% probabilidad si no está activo
+  - Supervisor Rampage: 8% normal / 18% chaos si no está activo
+  - Durante rampage: spawn supervisor angry cada 20s + loseTime(5)
+  - clearExpiredSpecialEvents llamado cada frame
+- **gameStore ampliado**:
+  - reportTicketCompleted ahora aplica x2 al score si clientVisitActive está activo (además del variant client-visit x2)
+  - Import useEventStore
+- **3 logros nuevos** en achievementStore (total: 23 → 26):
+  - client-visit-first (👀 Cliente satisfecho): completa 1 ticket durante visita del cliente
+  - client-visit-5 (🤝 Cliente VIP): sobrevive a 5 visitas del cliente (acumulativo)
+  - rampage-survivor (😤 Survivor del rampage): sobrevive a 3 días del supervisor enojado (acumulativo)
+  - Nuevos campos en AchievementCheckStats: clientVisits, supervisorRampages
+  - Nuevos campos en store state + partialize
+- **Keyboard Shortcuts** creado en `src/hooks/use-keyboard-shortcuts.ts` (~50 líneas):
+  - 1-4: cambiar entre estaciones (Corte, Splices, Prensas, Harness)
+  - P: toggle pausa (si playing → paused, si paused → playing)
+  - Escape: volver a title desde howto
+  - Skip si usuario está en input/textarea
+- **Música de fondo mejorada** en `src/lib/audio.ts`:
+  - Antes: loop simple 4s con 2 tonos bajos + noise
+  - Ahora: loop 8s con:
+    - Bass line: 55Hz (A1) con envelope pulsante 60bpm feel
+    - Melodic line: pentatonic A minor riff (A C D E G) — 220, 261, 293, 329, 392 Hz — 8 notas con envelope exponencial
+    - Pad: drone 110Hz con LFO modulado
+    - Hi-hat: noise burst cada 0.5s con envelope corto
+  - Mezcla均衡ada: bass 0.06, melody 0.04, pad 0.02, noise 0.008
+- **GameApp ampliado**: monta SpecialEventsIndicator + useKeyboardShortcuts
+- Verifiqué con agent-browser:
+  - Title screen: botones Ranking/Logros/Stats + Daily Challenge featured
+  - Click Logros → modal muestra "Progreso 0/26 0% completado" (26 logros = 23 + 3 nuevos)
+  - Click Normal → entra al juego
+  - **Keyboard shortcut 3** → tab "Prensas" selected ✓
+  - **Keyboard shortcut P** → "PAUSA" + "Continuar" appears ✓
+  - **Keyboard shortcut 1** → tab "Corte" selected ✓
+  - Sin errores en consola
+- Lint: `bun run lint` → exit code 0 (limpio).
+- Capturas de pantalla en `/home/z/my-project/download/`:
+  - `keyboard-shortcuts-test.png` — juego con Prensas tab activo vía shortcut
+
+Stage Summary:
+- **Cliente Visitante completo**: character visual + bubble + 8 frases + score x2 durante visita (60s) + 2 logros nuevos.
+- **Supervisor Rampage completo**: banner + 5 frases + supervisor angry cada 20s durante 45s + 1 logro nuevo.
+- **Special Events Indicator**: badges visibles top-left con countdown cuando eventos activos.
+- **26 logros totales** (23 + 3 nuevos de special events).
+- **Keyboard Shortcuts**: 1-4 estaciones, P pausa, Esc back.
+- **Música mejorada**: loop 8s con bass + melody pentatonic + pad + hi-hat.
+- **QA exitoso**: shortcuts funcionan, logros 26 registrados, sin errores.
+
+Current project status description/assessment:
+- **Estado del juego:** Completo y jugable end-to-end con cliente visitante, supervisor rampage, special events indicators, keyboard shortcuts, música mejorada, 26 logros.
+- **Características implementadas (acumuladas):**
+  - 4 estaciones totalmente funcionales: Corte + Splices + Prensas + Harness
+  - Almacén funcional con delivery + power-ups
+  - 2 mini-juegos modales: Mantenimiento + Quick Audit
+  - 9 variantes de tickets con badges visuales
+  - **26 logros** con notificaciones + panel modal + persistencia (cola de 3 simultáneas)
+  - **Daily Challenge**: ticket diario con stories, bonus x2-x3, racha de días
+  - **Stats Dashboard**: 3 gráficas recharts + KPIs + stats acumuladas
+  - **Special Events**: Cliente Visitante (score x2 60s) + Supervisor Rampage (angry cada 20s por 45s)
+  - **Keyboard Shortcuts**: 1-4 estaciones, P pausa, Esc back
+  - Konami code: TURBO MODE x3 score
+  - Modo Debug: 5 clics en título (easter egg)
+  - Eventos aleatorios con frases expandidas (Gringo 16, Supervisor 11+9+5 rampage, Chisme 15, Cliente 8)
+  - Sistema de combos x3 → Modo Rápido
+  - Power-ups: Café + Taco
+  - Settings modal funcional (volumen, música, tema, reduce motion)
+  - Ranking Online con Prisma SQLite + API routes (GET/POST scores + sessions) + LeaderboardModal
+  - Performance Tier (6 niveles: NOVATO→LEYENDA)
+  - Share Modal: Twitter + WhatsApp + Copy
+  - Modo Caótico balanceado
+  - Pantallas: Title (con partículas + easter eggs + botones Ranking/Logros/Stats/Daily), How To Play, Game (responsive), Paused, Game Over (con tier + leaderboard + share)
+  - Persistencia localStorage + Prisma SQLite
+  - 15+ SFX sintetizados con Web Audio API
+  - Música de fondo con bass + melody pentatonic + pad + hi-hat
+  - ScoreBoard con delta flotante animado
+
+Current goals/completed modifications/verification results:
+- ✅ Meta 1: Cliente Visitante character (visual + bubble + 8 frases)
+- ✅ Meta 2: Supervisor Rampage event (banner + 5 frases + angry cada 20s)
+- ✅ Meta 3: Special Events Indicator con countdown
+- ✅ Meta 4: 3 logros nuevos (client-visit-first, client-visit-5, rampage-survivor) — total 26
+- ✅ Meta 5: Keyboard Shortcuts (1-4 estaciones, P pausa, Esc back)
+- ✅ Meta 6: Música mejorada (loop 8s con 4 capas)
+- ✅ Meta 7: Verificación con agent-browser exitosa (shortcuts funcionan, 26 logros)
+- ✅ Meta 8: `bun run lint` pasa sin errores
+
+Unresolved issues or risks, and priority recommendations for the next phase:
+1. **Client visit durante variant client-visit** — actualmente el character bubble aparece solo cuando el evento client-visit está activo, no cuando el ticket tiene variant client-visit. Podría hacerse visible también en ese caso.
+2. **Más eventos especiales** — "día del taco" (todos los pedidos traen taco), "cortocircuito" (máquina se apaga), "visita del CEO".
+3. **Internacionalización** — aún solo español; next-intl para multi-idioma.
+4. **Tutorial interactivo** — el How To Play es solo slides; podría ser un tutorial guiado dentro del juego.
+5. **Recomendación para próxima fase:** Más eventos especiales + tutorial interactivo + considerar i18n.
+
+Artifacts produced (nuevos en esta sesión):
+- `src/components/game/characters/SpecialEventsIndicator.tsx` (~75 líneas)
+- `src/hooks/use-keyboard-shortcuts.ts` (~50 líneas)
+- Modificados:
+  - `src/game/store/eventStore.ts` (spawnClientVisit + spawnSupervisorRampage + clearExpiredSpecialEvents + cumulative stats)
+  - `src/game/store/achievementStore.ts` (3 logros nuevos + clientVisits/supervisorRampages fields)
+  - `src/game/store/gameStore.ts` (clientVisitActive score multiplier + import useEventStore)
+  - `src/game/dragResolver.ts` (clientVisits/supervisorRampages en achievement check)
+  - `src/hooks/use-game-loop.ts` (special events spawner cada 30s + rampage angry cada 20s)
+  - `src/game/types.ts` (EventKind: client-visit + supervisor-rampage)
+  - `src/game/constants.ts` (CLIENT_VISIT_PHRASES + SUPERVISOR_RAMPAGE_PHRASES + EVENT_DURATION_SEC)
+  - `src/components/game/characters/CharacterLayer.tsx` (ClientVisitBubble + SupervisorRampageBanner + frase props)
+  - `src/components/game/GameApp.tsx` (monta SpecialEventsIndicator + useKeyboardShortcuts)
+  - `src/lib/audio.ts` (música 8s con 4 capas: bass + melody pentatonic + pad + hi-hat)
+- Screenshots: 1 nueva en `/home/z/my-project/download/`
+
+Next agent should:
+1. Leer este worklog y los docs en `/home/z/my-project/docs/` para contexto.
+2. Agregar más eventos especiales: "día del taco" (todos los pedidos traen taco), "cortocircuito" (máquina se apaga), "visita del CEO".
+3. Implementar tutorial interactivo dentro del juego (no solo slides).
+4. Considerar next-intl para multi-idioma (español + inglés).
+5. Hacer visible el cliente visitante también cuando el ticket tiene variant client-visit.
+6. Verificar siempre con agent-browser después de implementar.
+7. Mantener `bun run lint` limpio.
+8. Anexar nuevo Task ID al final de este worklog.

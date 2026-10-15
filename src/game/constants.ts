@@ -178,6 +178,8 @@ export const EVENT_DURATION_SEC: Record<EventKind, number> = {
   gringo: 5,
   gossip: 8,
   'quality-audit': 12,
+  'client-visit': 6,
+  'supervisor-rampage': 10,
 }
 
 // === Mensajes del Gringo (espanglish) ===
@@ -242,4 +244,25 @@ export const GOSSIP_PHRASES = [
   '¿Cuánto te pagan? Yo gano más en la cantina.',
   'Ayer se atoró la prensa, qué susto.',
   'El de mantenimimento anda de crudo otra vez.',
+]
+
+// === Cliente visitante ===
+export const CLIENT_VISIT_PHRASES = [
+  'Hola, vengo a ver cómo va mi orden. ¿Ya está?',
+  'I need this batch for tomorrow, please!',
+  '¿Me muestras el proceso? Quiero verlo todo.',
+  'The quality must be perfect, no exceptions.',
+  'Vengo de parte del corporativo. Inspección sorpresa.',
+  'Espero que estén cumpliendo con los estándares...',
+  '¿Cuánto falta? Mi cliente final está esperando.',
+  'I will be watching closely. Don\'t disappoint me.',
+]
+
+// === Supervisor rampage (día del supervisor enojado) ===
+export const SUPERVISOR_RAMPAGE_PHRASES = [
+  '¡HOY NO ES DÍA! ¡Todos a chambear!',
+  '¡Se acabó el relax! ¡Movimiento, movimiento!',
+  '¡Si alguien se equivoca, lo mando al almacén!',
+  '¡El Gringo me dijo que si no cumplimos, despide gente!',
+  '¡Cero tolerancia! ¡Cero errores! ¡Cero excusas!',
 ]

@@ -16,13 +16,17 @@ export function CharacterLayer() {
           if (ev.resolved) return null
           switch (ev.kind) {
             case 'supervisor-warn':
-              return <SupervisorBubble key={ev.id} level={1} />
+              return <SupervisorBubble key={ev.id} level={1} phrase={ev.payload?.phrase as string} />
             case 'supervisor-angry':
-              return <SupervisorBubble key={ev.id} level={2} />
+              return <SupervisorBubble key={ev.id} level={2} phrase={ev.payload?.phrase as string} />
             case 'gringo':
               return <GringoBackdrop key={ev.id} />
             case 'gossip':
-              return <GossipBubble key={ev.id} />
+              return <GossipBubble key={ev.id} phrase={ev.payload?.phrase as string} />
+            case 'client-visit':
+              return <ClientVisitBubble key={ev.id} phrase={ev.payload?.phrase as string} />
+            case 'supervisor-rampage':
+              return <SupervisorRampageBanner key={ev.id} phrase={ev.payload?.phrase as string} />
             default:
               return null
           }
@@ -43,7 +47,7 @@ export function CharacterLayer() {
   )
 }
 
-function SupervisorBubble({ level }: { level: 1 | 2 }) {
+function SupervisorBubble({ level, phrase }: { level: 1 | 2; phrase?: string }) {
   return (
     <motion.div
       initial={{ x: -200, opacity: 0 }}
@@ -75,7 +79,7 @@ function SupervisorBubble({ level }: { level: 1 | 2 }) {
             {level === 2 ? '😡 El Jefe' : '👔 Supervisor'}
           </div>
           <div className="text-sm font-medium">
-            {level === 2 ? '¡Ya vas muy lento, ponle ganas!' : 'Eh, checa el programa...'}
+            {phrase ?? (level === 2 ? '¡Ya vas muy lento, ponle ganas!' : 'Eh, checa el programa...')}
           </div>
         </div>
       </div>
@@ -83,7 +87,7 @@ function SupervisorBubble({ level }: { level: 1 | 2 }) {
   )
 }
 
-function GossipBubble() {
+function GossipBubble({ phrase }: { phrase?: string }) {
   return (
     <motion.div
       initial={{ y: 100, opacity: 0 }}
@@ -98,7 +102,7 @@ function GossipBubble() {
           <div className="text-[10px] font-mono uppercase opacity-70 mb-0.5">
             💬 Compañero chismoso
           </div>
-          <div className="text-sm">¿Oíste que el Gringo viene hoy?</div>
+          <div className="text-sm">{phrase ?? '¿Oíste que el Gringo viene hoy?'}</div>
         </div>
         {/* Personaje */}
         <motion.div
@@ -109,6 +113,68 @@ function GossipBubble() {
           🗣️
         </motion.div>
       </div>
+    </motion.div>
+  )
+}
+
+function ClientVisitBubble({ phrase }: { phrase?: string }) {
+  return (
+    <motion.div
+      initial={{ x: 300, opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      exit={{ x: 300, opacity: 0 }}
+      transition={{ type: 'spring', stiffness: 200 }}
+      className="absolute top-24 right-4 z-30 pointer-events-none"
+    >
+      <div className="flex items-end gap-2">
+        {/* Globo de diálogo */}
+        <div className="px-3 py-2 bg-emerald-600 text-white rounded-lg shadow-lg border-2 border-emerald-300 max-w-xs">
+          <div className="text-[10px] font-mono uppercase opacity-90 mb-0.5">
+            👀 Cliente VIP
+          </div>
+          <div className="text-sm">{phrase ?? 'Hola, vengo a ver cómo va mi orden.'}</div>
+        </div>
+        {/* Personaje cliente */}
+        <motion.div
+          animate={{ rotate: [0, -3, 3, 0] }}
+          transition={{ duration: 2, repeat: Infinity }}
+          className="w-16 h-16 rounded-full border-4 border-emerald-400 bg-emerald-100 flex items-center justify-center text-3xl shadow-xl"
+        >
+          🧑‍💼
+        </motion.div>
+      </div>
+    </motion.div>
+  )
+}
+
+function SupervisorRampageBanner({ phrase }: { phrase?: string }) {
+  return (
+    <motion.div
+      initial={{ y: -100, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      exit={{ y: -100, opacity: 0 }}
+      transition={{ type: 'spring', stiffness: 200 }}
+      className="absolute top-16 left-1/2 -translate-x-1/2 z-30 pointer-events-none"
+    >
+      <motion.div
+        animate={{ boxShadow: ['0 0 0 0 rgba(220,38,38,0.5)', '0 0 0 12px rgba(220,38,38,0)'] }}
+        transition={{ duration: 1, repeat: Infinity }}
+        className="bg-red-600 text-white px-6 py-3 rounded-xl border-4 border-yellow-400 shadow-2xl flex items-center gap-3"
+      >
+        <motion.div
+          animate={{ rotate: [-10, 10, -10] }}
+          transition={{ duration: 0.3, repeat: Infinity }}
+          className="text-3xl"
+        >
+          😡
+        </motion.div>
+        <div>
+          <div className="text-[9px] font-mono uppercase tracking-widest text-yellow-300">
+            ¡Día del supervisor enojado!
+          </div>
+          <div className="font-black text-base">{phrase ?? '¡HOY NO ES DÍA!'}</div>
+        </div>
+      </motion.div>
     </motion.div>
   )
 }

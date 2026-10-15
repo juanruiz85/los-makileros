@@ -21,12 +21,15 @@ import { MaintenanceModal } from './characters/MaintenanceModal'
 import { QualityAuditModal } from './characters/QualityAuditModal'
 import { CharacterDropZone } from './characters/CharacterDropZone'
 import { AchievementNotification } from './characters/AchievementPanel'
+import { SpecialEventsIndicator } from './characters/SpecialEventsIndicator'
 import { TurboModeIndicator } from './effects/TurboModeIndicator'
+import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts'
 import { audio } from '@/lib/audio'
 
 export function GameApp() {
   const screen = useGameStore((s) => s.screen)
   useGameLoop()
+  useKeyboardShortcuts()
 
   // Inicializa inventario al montar
   useEffect(() => {
@@ -97,6 +100,8 @@ export function GameApp() {
           <QualityAuditModal />
           {/* Notificaciones de logros */}
           <AchievementNotification />
+          {/* Special events indicators (client visit, supervisor rampage) */}
+          <SpecialEventsIndicator />
           {/* Turbo Mode indicator (Konami code) */}
           <TurboModeIndicator active={turboMode} />
           {/* Konami progress hint */}
