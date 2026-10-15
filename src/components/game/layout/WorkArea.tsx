@@ -3,6 +3,9 @@
 import React from 'react'
 import { useStationStore } from '@/game/store/stationStore'
 import { CutStation } from '../stations/CutStation'
+import { SpliceStation } from '../stations/SpliceStation'
+import { PressStation } from '../stations/PressStation'
+import { HarnessStation } from '../stations/HarnessStation'
 import { Card } from '@/components/ui/card'
 import { Wrench, Cable, Grid3x3 } from 'lucide-react'
 import { T } from '@/lib/i18n'
@@ -40,22 +43,10 @@ export function WorkArea() {
 
       <div className="h-[calc(100%-40px)] overflow-y-auto custom-scroll">
         {active === 'cut' && <CutStation />}
-        {active === 'splice' && <ComingSoon label="Splices (próximamente)" />}
-        {active === 'press' && <ComingSoon label="Prensas (próximamente)" />}
-        {active === 'harness' && <ComingSoon label="Harness (próximamente)" />}
+        {active === 'splice' && <SpliceStation />}
+        {active === 'press' && <PressStation />}
+        {active === 'harness' && <HarnessStation />}
       </div>
     </Card>
-  )
-}
-
-function ComingSoon({ label }: { label: string }) {
-  return (
-    <div className="h-full flex flex-col items-center justify-center text-stone-400 gap-3">
-      <div className="w-16 h-16 rounded-full bg-stone-200 dark:bg-stone-800 flex items-center justify-center">
-        <Wrench className="w-8 h-8" />
-      </div>
-      <div className="text-sm font-mono uppercase tracking-widest">{label}</div>
-      <div className="text-xs">Esta estación está en desarrollo</div>
-    </div>
   )
 }

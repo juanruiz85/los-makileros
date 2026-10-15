@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card'
 import { DraggableCable } from '../inventory/DraggableCable'
 import { DraggableTerminal } from '../inventory/DraggableTerminal'
 import { DraggablePowerup } from '../inventory/DraggablePowerup'
+import { DraggableTube } from '../inventory/DraggableTube'
 import { Package, Boxes } from 'lucide-react'
 
 export function InventoryPanel() {
@@ -76,9 +77,20 @@ export function InventoryPanel() {
         )}
 
         <div className="text-[10px] font-mono text-stone-400 uppercase mt-3 mb-1">Tubos</div>
-        <div className="text-xs font-mono text-stone-500">
-          {tubes.filter((t) => !t.applied).length} disponibles
-        </div>
+        {tubes.filter((t) => !t.applied).length === 0 ? (
+          <div className="text-xs text-stone-400 italic py-2">Sin tubos</div>
+        ) : (
+          <div className="grid grid-cols-3 gap-2">
+            {groupTubes(tubes.filter((t) => !t.applied)).map((g) => (
+              <DraggableTube
+                key={g.items[0].id}
+                tube={g.items[0]}
+                count={g.items.length}
+                interactive={screen === 'playing'}
+              />
+            ))}
+          </div>
+        )}
 
         {/* Power-ups */}
         {(coffeePending || tacoPending) && (
@@ -112,4 +124,10 @@ function groupTerminals(terminals: ReturnType<typeof useInventoryStore.getState>
     map.set(t.type, arr)
   }
   return Array.from(map.entries()).map(([type, items]) => ({ type, items }))
+}
+
+function groupTubes(tubes: ReturnType<typeof useInventoryStore.getState>['tubes']) {
+  // Group all tubes together (no subtype)
+  if (tubes.length === 0) return []
+  return [{ items: tubes }]
 }

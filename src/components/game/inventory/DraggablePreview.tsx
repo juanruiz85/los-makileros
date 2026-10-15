@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { CABLE_COLOR_HEX } from '@/game/constants'
-import { Terminal as TerminalIcon } from 'lucide-react'
+import { Terminal as TerminalIcon, Flame } from 'lucide-react'
 
 interface DraggablePreviewProps {
   kind: string
@@ -22,6 +22,11 @@ export function DraggablePreview({ kind, color, label }: DraggablePreviewProps) 
       {kind === 'terminal' && (
         <div className="w-12 h-12 bg-stone-500 rounded shadow-2xl flex items-center justify-center">
           <TerminalIcon className="w-7 h-7 text-white" />
+        </div>
+      )}
+      {kind === 'tube' && (
+        <div className="w-20 h-6 rounded-full bg-gradient-to-r from-orange-300 via-red-400 to-orange-300 border-2 border-stone-500 shadow-2xl flex items-center justify-center">
+          <Flame className="w-4 h-4 text-white" />
         </div>
       )}
       {kind === 'powerup' && (

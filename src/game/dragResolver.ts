@@ -5,7 +5,7 @@
 'use client'
 
 import type { DragEndEvent } from '@dnd-kit/core'
-import type { Cable, Terminal } from './types'
+import type { Cable, HeatShrinkTube, Terminal } from './types'
 import { useGameStore } from './store/gameStore'
 import { useInventoryStore } from './store/inventoryStore'
 import { useStationStore } from './store/stationStore'
@@ -15,8 +15,6 @@ import {
   SCORE,
   TIME_BONUS,
   TIME_PENALTY,
-  CABLE_COLOR_LABEL,
-  TERMINAL_LABEL,
 } from './constants'
 import { isTerminalRequired } from '@/lib/tickets'
 
@@ -42,7 +40,6 @@ export function resolveDragEnd(event: DragEndEvent) {
     case 'terminal->cut-termB':
       return handleTerminalToCut('B', data.payload as Terminal)
     case 'cable->cut-wip':
-      // Mover cable del blade al WIP (solo si ya está cortado)
       return handleCableToWip(data.payload as Cable)
     case 'cable->wip-tray':
       return handleCableToWip(data.payload as Cable)
@@ -51,11 +48,31 @@ export function resolveDragEnd(event: DragEndEvent) {
     case 'terminal->trash':
       return handleTerminalToTrash(data.payload as Terminal)
 
+    // === SPLICES ===
+    case 'cable->splice-machine-a':
+      return handleCableToSplice('A', data.payload as Cable)
+    case 'cable->splice-machine-b':
+      return handleCableToSplice('B', data.payload as Cable)
+    case 'tube->splice-tube':
+      return handleTubeToSplice(data.payload as HeatShrinkTube)
+    case 'splice->splice-band':
+      return handleSpliceToBand()
+
+    // === HARNESS ===
+    case 'cable->harness-board':
+      return handleCableToHarness(data.payload as Cable)
+    case 'cable->harness-test-machine':
+      return handleHarnessTest()
+
     // === POWERUPS ===
     case 'powerup->character':
       return handlePowerupConsume(data.payload as { type: 'coffee' | 'taco' })
 
     default:
+      // Check for harness-slot-* pattern (dynamic per-slot dropzones)
+      if (zoneId.startsWith('harness-slot-') && data.kind === 'cable') {
+        return handleCableToHarnessSlot(zoneId, data.payload as Cable)
+      }
       // item soltado en zona que no lo acepta: no-op
       return
   }
@@ -92,7 +109,6 @@ function handleCableToWip(cable: Cable) {
   const bladeCable = station.cutBladeCable
   if (!bladeCable || bladeCable.id !== cable.id) {
     // No está en blade, no se puede cortar
-    // Permite moverlo de vuelta al inventario si el usuario lo quiere
     return
   }
 
@@ -109,7 +125,6 @@ function handleCableToWip(cable: Cable) {
     game.breakCombo()
     audio.play('buzz-fail')
     useEventStore.getState().spawnSupervisorWarn()
-    // Limpia la estación
     station.clearCutStation()
     return
   }
@@ -125,7 +140,6 @@ function handleCableToWip(cable: Cable) {
     hasTermB &&
     station.cutTermB!.type === (ticket.terminalB === 'NONE' ? station.cutTermB!.type : ticket.terminalB)
 
-  // Penalización si falta terminal obligatorio
   if (terminalReq && ticket.terminalA !== 'NONE' && !terminalMatchesA) {
     game.loseTime(TIME_PENALTY.missingTerminalGt10)
   }
@@ -158,9 +172,7 @@ function handleCableToWip(cable: Cable) {
 
 function handleCableToTrash(cable: Cable) {
   const inv = useInventoryStore.getState()
-  // Si el cable está en inventario, lo quitamos
   inv.removeCable(cable.id)
-  // Si está en WIP, lo quitamos
   inv.removeFromWip(cable.id)
   audio.play('click-ok')
 }
@@ -171,6 +183,186 @@ function handleTerminalToTrash(terminal: Terminal) {
   audio.play('click-ok')
 }
 
+// === SPLICES ===
+
+function handleCableToSplice(side: 'A' | 'B', cable: Cable) {
+  const station = useStationStore.getState()
+  const inv = useInventoryStore.getState()
+  // Solo aceptamos cables ya cortados (origin = wip)
+  if (cable.origin === 'inventory') {
+    // Si el jugador arrastra cable sin cortar, devolver con warning
+    audio.play('buzz-fail')
+    useEventStore.getState().setSubtitle(
+      '⚠ Primero corta el cable en la cuchilla',
+      'text-amber-500',
+      3000
+    )
+    return
+  }
+  // Quita el cable del WIP
+  inv.removeFromWip(cable.id)
+  // Coloca en la máquina de splice
+  station.setSpliceCable(side, { ...cable, origin: 'station' })
+  audio.play('click-ok')
+}
+
+function handleTubeToSplice(tube: HeatShrinkTube) {
+  const station = useStationStore.getState()
+  const inv = useInventoryStore.getState()
+  if (!station.spliceWelded) {
+    // Primero hay que soldar
+    audio.play('buzz-fail')
+    useEventStore.getState().setSubtitle(
+      '⚠ Suelda primero con el ultrasonido',
+      'text-amber-500',
+      3000
+    )
+    return
+  }
+  inv.consumeTube(tube.id)
+  station.setSpliceTube({ ...tube, applied: true })
+  station.setSpliceReady(true)
+  audio.play('click-ok')
+}
+
+function handleSpliceToBand() {
+  const station = useStationStore.getState()
+  const game = useGameStore.getState()
+  const inv = useInventoryStore.getState()
+  if (!station.spliceOnBand) return
+  // No tiene tubo → entra al horno derretido
+  const failedMelted = !station.spliceTube
+  const splice = station.spliceOnBand
+  station.addBandItem(splice.id, failedMelted)
+  if (failedMelted) {
+    audio.play('oven-whoosh')
+    useEventStore.getState().setSubtitle(
+      '🔥 ¡El ensamble salió fundido!',
+      'text-red-500',
+      3000
+    )
+    game.loseTime(TIME_PENALTY.spliceWrong)
+    game.addScore(SCORE.spliceWrong)
+    game.registerError()
+    game.breakCombo()
+  } else {
+    audio.play('oven-whoosh')
+  }
+  station.clearSpliceStation()
+}
+
+// === HARNESS ===
+
+function handleCableToHarness(cable: Cable) {
+  const station = useStationStore.getState()
+  const inv = useInventoryStore.getState()
+  if (!cable.cut) {
+    audio.play('buzz-fail')
+    useEventStore.getState().setSubtitle(
+      '⚠ Solo circuitos cortados/spliceds van al harness',
+      'text-amber-500',
+      3000
+    )
+    return
+  }
+  // Encuentra el primer slot vacío
+  const board = [...station.harnessBoard]
+  const emptyIdx = board.findIndex((s) => !s.circuitId)
+  if (emptyIdx === -1) {
+    audio.play('buzz-fail')
+    return
+  }
+  inv.removeFromWip(cable.id)
+  board[emptyIdx] = { ...board[emptyIdx], circuitId: cable.id, correct: true }
+  station.setHarnessBoard(board)
+  audio.play('click-ok')
+}
+
+function handleCableToHarnessSlot(zoneId: string, cable: Cable) {
+  const station = useStationStore.getState()
+  const inv = useInventoryStore.getState()
+  const slotName = zoneId.replace('harness-slot-', '')
+  const slotIdx = station.harnessBoard.findIndex((s) => s.slot === slotName)
+  if (slotIdx === -1) return
+  if (!cable.cut) {
+    audio.play('buzz-fail')
+    useEventStore.getState().setSubtitle(
+      '⚠ Solo circuitos cortados/spliceds van al harness',
+      'text-amber-500',
+      3000
+    )
+    return
+  }
+  const slot = station.harnessBoard[slotIdx]
+  if (slot.circuitId) {
+    audio.play('buzz-fail')
+    useEventStore.getState().setSubtitle(
+      `⚠ ${slotName} ya está ocupado`,
+      'text-amber-500',
+      2000
+    )
+    return
+  }
+  inv.removeFromWip(cable.id)
+  const board = [...station.harnessBoard]
+  board[slotIdx] = { ...slot, circuitId: cable.id, correct: true }
+  station.setHarnessBoard(board)
+  audio.play('click-ok')
+}
+
+function handleHarnessTest() {
+  const station = useStationStore.getState()
+  const game = useGameStore.getState()
+  const ticket = game.currentTicket
+  if (!ticket) return
+  if (station.harnessBoard.length === 0) {
+    audio.play('buzz-fail')
+    useEventStore.getState().setSubtitle(
+      '⚠ El harness está vacío',
+      'text-amber-500',
+      3000
+    )
+    return
+  }
+  // Comprueba si todos los slots tienen circuitId
+  const filled = station.harnessBoard.filter((s) => s.circuitId).length
+  const required = station.harnessBoard.length
+  const passed = filled >= required
+  station.setHarnessTested(true)
+  station.setHarnessTestResult(passed ? 'passed' : 'failed')
+  if (passed) {
+    audio.play('combo-chime')
+    audio.play('ticket-done')
+    game.addScore(SCORE.harnessTestPassed)
+    game.addTime(TIME_BONUS.harnessTestPassed)
+    game.bumpCombo()
+    game.resetConsecutiveErrors()
+    useEventStore.getState().setSubtitle(
+      '✅ ¡Prueba eléctrica OK! Ticket cerrado',
+      'text-emerald-500',
+      3000
+    )
+    setTimeout(() => {
+      useStationStore.getState().clearHarnessStation()
+    }, 1500)
+  } else {
+    audio.play('buzz-fail')
+    game.loseTime(TIME_PENALTY.harnessTestFailed)
+    game.addScore(SCORE.harnessTestFailed)
+    game.registerError()
+    game.breakCombo()
+    useEventStore.getState().setSubtitle(
+      `❌ BUZZ! Solo ${filled}/${required} circuitos`,
+      'text-red-500',
+      4000
+    )
+    setTimeout(() => {
+      useStationStore.getState().setHarnessTested(false)
+      useStationStore.getState().setHarnessTestResult(null)
+    }, 2000)
+  }
+}
+
 function handlePowerupConsume(payload: { type: 'coffee' | 'taco' }) {
   const game = useGameStore.getState()
   const inv = useInventoryStore.getState()
@@ -179,6 +371,11 @@ function handlePowerupConsume(payload: { type: 'coffee' | 'taco' }) {
     inv.consumeCoffee()
     game.setTimerFrozen(true)
     audio.play('coffee-glug')
+    useEventStore.getState().setSubtitle(
+      '☕ ¡Timer congelado 5s!',
+      'text-yellow-500',
+      3000
+    )
     setTimeout(() => {
       useGameStore.getState().setTimerFrozen(false)
     }, 5000)
@@ -187,5 +384,11 @@ function handlePowerupConsume(payload: { type: 'coffee' | 'taco' }) {
     inv.consumeTaco()
     game.grantGringoImmunity()
     audio.play('taco-bite')
+    useEventStore.getState().setSubtitle(
+      '🌮 ¡Inmunidad anti-Supervisor!',
+      'text-orange-500',
+      3000
+    )
   }
 }
+

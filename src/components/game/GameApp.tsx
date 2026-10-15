@@ -16,6 +16,8 @@ import { GameFooter } from './layout/GameFooter'
 import { CharacterLayer } from './characters/CharacterLayer'
 import { EffectsLayer } from './effects/EffectsLayer'
 import { SubtitleBar } from './hud/SubtitleBar'
+import { MaintenanceModal } from './characters/MaintenanceModal'
+import { CharacterDropZone } from './characters/CharacterDropZone'
 
 export function GameApp() {
   const screen = useGameStore((s) => s.screen)
@@ -56,6 +58,10 @@ export function GameApp() {
           <CharacterLayer />
           <EffectsLayer />
           <SubtitleBar />
+          {/* Drop zone para powerups (café/taco) — visible solo en playing */}
+          <CharacterDropZone />
+          {/* Modal de mantenimiento (bloqueante) */}
+          <MaintenanceModal />
         </main>
         <GameFooter />
       </div>

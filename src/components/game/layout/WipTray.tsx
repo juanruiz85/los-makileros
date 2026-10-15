@@ -1,11 +1,13 @@
 'use client'
 
 import React from 'react'
-import { useDroppable } from '@dnd-kit/core'
+import { useDroppable, useDraggable } from '@dnd-kit/core'
+import { CSS } from '@dnd-kit/utilities'
+import { motion } from 'framer-motion'
 import { useInventoryStore } from '@/game/store/inventoryStore'
 import { T } from '@/lib/i18n'
 import { Card } from '@/components/ui/card'
-import { CABLE_COLOR_HEX } from '@/game/constants'
+import { CABLE_COLOR_HEX, CABLE_COLOR_LABEL } from '@/game/constants'
 import { Layers } from 'lucide-react'
 import type { Cable } from '@/game/types'
 
@@ -38,20 +40,7 @@ export function WipTray() {
             wip.map((item) => {
               if ((item as Cable).color) {
                 const cable = item as Cable
-                return (
-                  <div
-                    key={cable.id}
-                    className="flex flex-col items-center gap-0.5 px-2 py-1 rounded bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 flex-shrink-0"
-                  >
-                    <div
-                      className="w-8 h-2 rounded"
-                      style={{ background: CABLE_COLOR_HEX[cable.color] }}
-                    />
-                    <div className="text-[9px] font-mono text-stone-500">
-                      {cable.length_mm}mm
-                    </div>
-                  </div>
-                )
+                return <WipCableCard key={cable.id} cable={cable} />
               }
               return (
                 <div
@@ -66,5 +55,37 @@ export function WipTray() {
         </div>
       </div>
     </Card>
+  )
+}
+
+function WipCableCard({ cable }: { cable: Cable }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: `wip-cable-${cable.id}`,
+    data: { kind: 'cable', payload: cable, color: cable.color },
+  })
+  const style: React.CSSProperties = {
+    transform: CSS.Translate.toString(transform),
+    opacity: isDragging ? 0.4 : 1,
+    cursor: 'grab',
+  }
+  return (
+    <motion.div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      whileHover={{ scale: 1.05, y: -2 }}
+      whileTap={{ scale: 0.95 }}
+      title={`${CABLE_COLOR_LABEL[cable.color]} ${cable.gauge} AWG · ${cable.length_mm}mm`}
+      className="flex flex-col items-center gap-0.5 px-2 py-1 rounded bg-white dark:bg-stone-900 border border-stone-300 dark:border-stone-700 flex-shrink-0 hover:border-amber-500 hover:shadow-md transition-colors touch-none select-none"
+    >
+      <div
+        className="w-8 h-2 rounded shadow-sm"
+        style={{ background: CABLE_COLOR_HEX[cable.color] }}
+      />
+      <div className="text-[9px] font-mono text-stone-500">
+        {cable.length_mm}mm
+      </div>
+    </motion.div>
   )
 }
