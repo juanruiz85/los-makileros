@@ -1564,3 +1564,66 @@ Next agent should:
 5. Verificar siempre con agent-browser después de implementar.
 6. Mantener `bun run lint` limpio.
 7. Anexar nuevo Task ID al final de este worklog.
+
+---
+Task ID: 11-characters-svg-assistant-docs
+Agent: Z.ai Code (cron-triggered agent + user request)
+Task: Rediseñar El Gringo como personaje completo que entra por un lado, dar más tiempo al inicio, crear personajes SVG diseñados (supervisor, compañero, vendedora de dulces, etc.), agregar asistente que ayuda en primeros niveles, crear documentación completa (README, CHANGELOG, TODO), subir a GitHub.
+
+Work Log:
+- **Token de GitHub**: Retorna "Bad credentials" (401). No se puede verificar usuario ni crear repo. Se informó al usuario.
+- **Git repo local inicializado**: commit con todos los archivos, remote añadido a github.com/juanruiz85/los-makileros.git
+- **START_TIME_SEC**: 120 → 150 (más tiempo al inicio para jugadores nuevos)
+- **Personajes SVG diseñados** en `src/components/game/characters/CharacterSVGs.tsx` (~400 líneas):
+  - **GringoCharacter**: ejecutivo con traje azul oscuro, corbata roja, pelo rubio engominado, cejas enojadas, caja de donas en mano, puño cerrado, líneas de enojo saliendo de la cabeza. Entra desde la derecha con spring animation.
+  - **SupervisorCharacter**: hombre con casco amarillo de seguridad, overol azul, bigote, camisa clara, clip en casco. Variantes angry/not-angry (cejas, boca, mejillas rojas, skin color cambian).
+  - **GossipCharacter**: joven con gorra morada hacia atrás, playera morada, guiño, vaso de café, burbuja de susurro con "?".
+  - **ClientCharacter**: profesional con gafas, traje gris, corbata verde, portafolio VIP, pelo negro corto.
+  - **CandySellerCharacter**: señora con vestido naranja, delantal bordado "DULCES", moño en pelo canoso, canasta con dulces de colores.
+  - **AssistantCharacter**: joven con playera verde "?HELP", tablet, pelo castaño, signo de ayuda flotante amarillo.
+- **CharacterLayer actualizado**: SupervisorBubble, GossipBubble, ClientVisitBubble, GringoBackdrop ahora usan los SVG characters en lugar de emojis.
+- **AssistantHelper** creado en `src/components/game/characters/AssistantHelper.tsx` (~180 líneas):
+  - Personaje SVG AssistantCharacter que aparece bottom-left
+  - 6 tips contextuales: start (bienvenida), first-ticket (bonus +10s), first-error (revisa Garnet), low-time (almacén + power-ups), first-combo (Modo Rápido), first-warehouse
+  - Persistencia en localStorage (makileros:assistant-tips-seen) — cada tip se muestra una sola vez
+  - Auto-dismiss con botón "Entendido" o X
+  - Animación spring de entrada desde la izquierda
+- **Documentación creada**:
+  - `README.md`: descripción del juego, features, personajes, stack técnico, estructura, cómo ejecutar, cómo jugar, atajos
+  - `CHANGELOG.md`: historial completo de cambios F0-F10 + rediseño personajes
+  - `TODO.md`: completado (F0-F10 + personajes SVG) + pendiente (i18n, más easter eggs, samples música, etc.)
+- Lint: `bun run lint` → exit code 0 (limpio).
+- Dev server: compila correctamente (GET / 200 en dev.log), aunque agent-browser tuvo problemas de conexión.
+
+Stage Summary:
+- **6 personajes SVG diseñados**: Gringo (ejecutivo + donas), Supervisor (casco + overol), Chismoso (gorra + café), Cliente (gafas + portafolio), Vendedora (delantal + dulces), Asistente (tablet + tips)
+- **El Gringo entra por un lado**: animación spring desde x=200, personaje SVG completo con traje, donas, cejas enojadas
+- **Asistente que ayuda**: 6 tips contextuales en primeros niveles, persistente, personaje SVG
+- **Más tiempo al inicio**: 120s → 150s
+- **Documentación completa**: README, CHANGELOG, TODO
+- **GitHub**: token inválido (401 Bad credentials), no se pudo crear repo ni verificar usuario
+- **Git local**: inicializado con commit, remote añadido a juanruiz85/los-makileros
+
+Current project status description/assessment:
+- **Estado del juego:** Completo y jugable end-to-end con personajes SVG diseñados, asistente, tutorial, 29 logros, 5 special events, ranking online, daily challenge, stats dashboard, keyboard shortcuts, 3 easter eggs.
+- **GitHub**: No se pudo subir. Token retorna "Bad credentials". El usuario necesita generar un nuevo token.
+
+Artifacts produced (nuevos en esta sesión):
+- `src/components/game/characters/CharacterSVGs.tsx` (~400 líneas, 6 personajes SVG)
+- `src/components/game/characters/AssistantHelper.tsx` (~180 líneas, 6 tips contextuales)
+- `README.md` (documentación completa)
+- `CHANGELOG.md` (historial de cambios)
+- `TODO.md` (lista de pendientes)
+- Modificados:
+  - `src/game/constants.ts` (START_TIME_SEC 120 → 150)
+  - `src/components/game/characters/CharacterLayer.tsx` (uso de SVG characters en Supervisor/Gossip/Client/Gringo)
+  - `src/components/game/GameApp.tsx` (monta AssistantHelper)
+
+Next agent should:
+1. El usuario necesita generar un nuevo token de GitHub para poder subir el repo.
+2. Considerar i18n con next-intl para multi-idioma.
+3. Modo Arcoíris con efecto visual global.
+4. Más secret achievements.
+5. Verificar siempre con agent-browser después de implementar.
+6. Mantener `bun run lint` limpio.
+7. Anexar nuevo Task ID al final de este worklog.
