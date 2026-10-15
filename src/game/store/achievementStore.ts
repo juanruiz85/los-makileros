@@ -41,6 +41,8 @@ export interface AchievementCheckStats {
   totalGringosAllTime: number
   coffeeConsumed: number
   tacosConsumed: number
+  dailyStreak: number
+  dailyCompletedTotal: number
 }
 
 export const ACHIEVEMENT_DEFS: AchievementDef[] = [
@@ -184,6 +186,35 @@ export const ACHIEVEMENT_DEFS: AchievementDef[] = [
     description: 'Completa 5 tickets en modo Caótico',
     emoji: '💀',
     check: (s) => s.mode === 'chaos' && s.ticketsCompleted >= 5,
+  },
+  // Tier 9: Daily Challenge
+  {
+    id: 'daily-first',
+    label: 'Primer Daily',
+    description: 'Completa tu primer Daily Challenge',
+    emoji: '📅',
+    check: (s) => s.dailyCompletedTotal >= 1,
+  },
+  {
+    id: 'daily-streak-3',
+    label: 'Racha de 3 días',
+    description: 'Mantén una racha de 3 días consecutivos',
+    emoji: '🔥',
+    check: (s) => s.dailyStreak >= 3,
+  },
+  {
+    id: 'daily-streak-7',
+    label: 'Racha semanal',
+    description: 'Mantén una racha de 7 días consecutivos',
+    emoji: '⚡',
+    check: (s) => s.dailyStreak >= 7,
+  },
+  {
+    id: 'daily-master-10',
+    label: 'Daily Master',
+    description: 'Completa 10 Daily Challenges en total',
+    emoji: '🏆',
+    check: (s) => s.dailyCompletedTotal >= 10,
   },
 ]
 

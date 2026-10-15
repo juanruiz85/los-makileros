@@ -836,3 +836,164 @@ Next agent should:
 6. Verificar siempre con agent-browser después de implementar.
 7. Mantener `bun run lint` limpio.
 8. Anexar nuevo Task ID al final de este worklog.
+
+---
+Task ID: 6-daily-challenge-stats-queue
+Agent: Z.ai Code (cron-triggered autonomous agent — 6ta iteración)
+Task: Implementar Daily Challenge (ticket único por día con bonus + racha), Stats Dashboard con recharts (gráficas progreso histórico), mejorar Achievement notification queue para múltiples unlocks simultáneos, 4 logros nuevos de Daily. Verificar con agent-browser.
+
+Work Log:
+- Leí el worklog anterior (Task 5-achievements-konami-tickets-share) que confirmó sistema de Achievements (19 logros), Konami code, 3 variantes nuevas de tickets, ShareModal, balanceo Caótico.
+- Verifiqué dev server corriendo (logs exitosos, GET / 200).
+- QA inicial con agent-browser: title screen carga con botones Ranking/Logros visibles.
+- **DailyChallengeStore** creado en `src/game/store/dailyChallengeStore.ts` (~180 líneas):
+  - Generación procedural determinística de ticket por día (basada en hash de YYYY-MM-DD)
+  - 11 part-numbers especiales (VIP-001, URG-001, SPC-001, FIN-001, BOSS-001, CLIENT-001, etc.)
+  - 8 stories de flavor text ("El cliente VIP necesita este lote para mañana temprano. ¡No falles!")
+  - Bonus multiplier: 70% chance x2, 30% chance x3
+  - Stats: streak (racha consecutiva de días jugados), totalCompleted, attempts, bestScore
+  - Persist en localStorage (makileros:stats:daily)
+  - Función dailyChallengeToTicket() convierte a formato Ticket estándar para el gameStore
+  - Acciones: getTodayChallenge(), recordAttempt(score), markCompleted(score)
+  - Streak logic: si lastPlayedDate es ayer → streak+1, si no → streak=1
+- **DailyChallengeModal** creado en `src/components/game/layout/DailyChallengeModal.tsx` (~220 líneas):
+  - Modal con backdrop-blur + animaciones framer-motion
+  - Header con Calendar icon rotante + "Daily Challenge"
+  - Streak badge con Flame icon (pulsante si streak > 0, orange si streak >= 3)
+  - Total completados counter
+  - Card con story/misión de flavor text
+  - Detalles del ticket: Part Number, color (swatch), gauge, longitud, circuitos, terminales A/B
+  - Process badges (Splice/Harness) si aplican
+  - Bonus info: "Score bonus x2" o "x3"
+  - Status: completed (✓ con bestScore) o attempts fallidos (X intentos sin éxito)
+  - Botón "Empezar Daily Challenge" / "Reintentar" / "Intentar de nuevo"
+  - Hint "Nueva challenge cada día a las 00:00 (hora local)"
+- **Daily Challenge Button** en TitleScreen:
+  - Gradient amber→orange→red bg
+  - Calendar icon rotante
+  - Texto dinámico: "Nueva challenge diaria" o "¡Completado! Reintentar"
+  - Score x2-x3 · Racha: X 🔥
+  - Pulsante si streak > 0 (✨ o 🔥)
+- **4 logros nuevos de Daily Challenge** en achievementStore:
+  - daily-first (📅 Primer Daily): completa 1 daily challenge
+  - daily-streak-3 (🔥 Racha de 3 días): 3 días consecutivos
+  - daily-streak-7 (⚡ Racha semanal): 7 días consecutivos
+  - daily-master-10 (🏆 Daily Master): 10 daily challenges completadas
+  - Total: 19 → 23 logros
+- **StatsDashboard** creado en `src/components/game/layout/StatsDashboard.tsx` (~280 líneas):
+  - Modal con max-w-2xl (más ancho que otros modales)
+  - Header sticky con BarChart3 icon
+  - 4 KPI cards: Highscore (amber), Sesiones (emerald), Logros X/23 (purple), Racha Daily Xd (orange)
+  - Gráficas con recharts:
+    - **LineChart** "Progresión de score (últimas 15 sesiones)" con stroke amber + dots
+    - **PieChart** "Distribución por modo" (normal/chaos/free) con 3 colores (amber/red/emerald)
+    - **BarChart** "Tickets por sesión" con fill emerald + radius top corners
+  - 4 summary stats: Tiempo total (Xh Ym), Promedio score, Errores totales (red), Visitas Gringo (orange)
+  - **Stats acumuladas** (9 métricas): Tickets totales, Score acumulado, Cafés tomados, Tacos comidos, Splices hechos, Prensas hechas, Pruebas eléctricas OK, Encuentros con Gringo, Daily challenges completadas
+  - GET /api/sessions para fetch de últimas 50 sesiones
+  - Estados: loading (Cargando sesiones...), empty (Aún no hay sesiones), con datos
+- **GET /api/sessions** endpoint agregado en `src/app/api/sessions/route.ts`:
+  - Retorna últimas 50 sesiones ordenadas por createdAt desc
+  - Incluye id, mode, durationSec, ticketsCompleted, finalScore, errors, gringoEncounters, createdAt
+  - Manejo de errores con try/catch y status 500
+- **Achievement Notification Queue mejorado**:
+  - Antes: solo 1 notificación a la vez, las demás se quedaban en cola sin mostrar
+  - Ahora: hasta 3 notificaciones visibles simultáneamente, apiladas verticalmente con gap-2
+  - Cada notificación se elimina después de 4.5s con timer individual
+  - Set "dismissed" previene re-mostrar la misma
+  - Animaciones staggered (delay idx * 0.1)
+  - Cleanup de timers en unmount
+- **Integración en TitleScreen**:
+  - Botón "Stats" (emerald, con icon BarChart3) agregado al lado de Logros
+  - Botón "Daily Challenge" como featured button después del highscore
+- **Integración en BottomBar**:
+  - Botón "Stats" (icon BarChart3) agregado al lado de Achievements
+- **Integración en gameStore**:
+  - reportTicketCompleted detecta si el ticket actual es daily (id empieza con "DAILY-")
+  - Si es daily: llama dailyStore.recordAttempt(newScore) y dailyStore.markCompleted(newScore)
+  - Achievement check ahora incluye dailyStreak y dailyCompletedTotal
+- Verifiqué con agent-browser:
+  - Title screen: botones Ranking/Logros/Stats visibles, Daily Challenge button prominent
+  - Click Daily Challenge → modal abre con story "El cliente VIP necesita este lote para mañana temprano. ¡No falles!", Part Number VIP-001, bonus x2
+  - Stats Dashboard: 4 KPI cards, 3 gráficas (LineChart, PieChart, BarChart), 4 summary stats, 9 stats acumuladas
+  - Datos reales: 24 sesiones, 1h 13m tiempo total, promedio 18,520 pts, 45 visitas del Gringo
+  - Logros: 0/23 (23 = 19 originales + 4 daily)
+  - API GET /api/sessions retorna 24 sesiones correctamente
+  - Sin errores en consola
+- Lint: `bun run lint` → exit code 0 (limpio).
+- Capturas de pantalla en `/home/z/my-project/download/`:
+  - `daily-challenge-modal.png` — modal de daily challenge con story y detalles
+  - `stats-dashboard.png` — dashboard completo con gráficas
+
+Stage Summary:
+- **Daily Challenge completo**: ticket único diario determinístico (basado en hash de fecha), stories de flavor, bonus x2-x3, streak de días consecutivos, persistencia, 4 logros nuevos.
+- **Stats Dashboard completo**: 4 KPIs + 3 gráficas recharts (LineChart, PieChart, BarChart) + 4 summary stats + 9 stats acumuladas, fetch de /api/sessions.
+- **Achievement Queue mejorado**: hasta 3 notificaciones simultáneas apiladas, timers individuales, cleanup en unmount.
+- **23 logros totales** (19 originales + 4 nuevos de Daily).
+- **QA exitoso**: daily challenge modal abre correctamente con story y detalles, stats dashboard muestra datos reales de 24 sesiones previas.
+
+Current project status description/assessment:
+- **Estado del juego:** Completo y jugable end-to-end con Daily Challenge, Stats Dashboard, achievements queue mejorado, 23 logros, ranking online, easter eggs, share modal.
+- **Características implementadas (acumuladas):**
+  - 4 estaciones totalmente funcionales: Corte + Splices + Prensas + Harness
+  - Almacén funcional con delivery + power-ups
+  - 2 mini-juegos modales: Mantenimiento + Quick Audit
+  - 9 variantes de tickets con badges visuales
+  - **23 logros** con notificaciones + panel modal + persistencia (cola de 3 simultáneas)
+  - **Daily Challenge**: ticket diario con stories, bonus x2-x3, racha de días
+  - **Stats Dashboard**: 3 gráficas recharts + KPIs + stats acumuladas
+  - Konami code: TURBO MODE x3 score
+  - Modo Debug: 5 clics en título (easter egg)
+  - Eventos aleatorios con frases expandidas (Gringo 16, Supervisor 11+9, Chisme 15)
+  - Sistema de combos x3 → Modo Rápido
+  - Power-ups: Café + Taco
+  - Settings modal funcional (volumen, música, tema, reduce motion)
+  - Ranking Online con Prisma SQLite + API routes (GET/POST scores + sessions) + LeaderboardModal
+  - Performance Tier (6 niveles: NOVATO→LEYENDA)
+  - Share Modal: Twitter + WhatsApp + Copy
+  - Modo Caótico balanceado
+  - Pantallas: Title (con partículas + easter eggs + botones Ranking/Logros/Stats/Daily), How To Play, Game (responsive), Paused, Game Over (con tier + leaderboard + share)
+  - Persistencia localStorage + Prisma SQLite
+  - 15+ SFX sintetizados con Web Audio API
+  - ScoreBoard con delta flotante animado
+
+Current goals/completed modifications/verification results:
+- ✅ Meta 1: Daily Challenge completo (ticket diario, stories, bonus, streak, persistencia)
+- ✅ Meta 2: Stats Dashboard con recharts (3 gráficas + KPIs + 9 stats acumuladas)
+- ✅ Meta 3: Achievement queue mejorado (3 simultáneas, timers individuales)
+- ✅ Meta 4: 4 logros nuevos de Daily (daily-first, streak-3, streak-7, master-10)
+- ✅ Meta 5: GET /api/sessions endpoint
+- ✅ Meta 6: Integración en TitleScreen (Daily button featured) y BottomBar (Stats button)
+- ✅ Meta 7: Verificación con agent-browser exitosa
+- ✅ Meta 8: `bun run lint` pasa sin errores
+
+Unresolved issues or risks, and priority recommendations for the next phase:
+1. **Cliente visitante character** — aún no agregado visual para variant client-visit (solo badge en ticket panel)
+2. **Más eventos aleatorios especiales** — "día del supervisor enojado", "visita del cliente" como evento que aparece en pantalla
+3. **Música de fondo samples** — actualmente osciladores básicos; podría usar samples reales
+4. **Internacionalización** — agregar next-intl para multi-idioma
+5. **Recomendación para próxima fase:** Agregar personaje cliente visitante + eventos especiales + considerar música samples.
+
+Artifacts produced (nuevos en esta sesión):
+- `src/game/store/dailyChallengeStore.ts` (~180 líneas)
+- `src/components/game/layout/DailyChallengeModal.tsx` (~220 líneas)
+- `src/components/game/layout/StatsDashboard.tsx` (~280 líneas, 3 gráficas recharts)
+- Modificados:
+  - `src/game/store/achievementStore.ts` (4 logros nuevos de Daily + 2 campos en stats)
+  - `src/game/store/gameStore.ts` (daily integration en reportTicketCompleted + triggerGringo)
+  - `src/game/dragResolver.ts` (dailyStreak/dailyCompletedTotal en achievement check)
+  - `src/app/api/sessions/route.ts` (GET endpoint)
+  - `src/components/game/screens/TitleScreen.tsx` (Daily button featured + Stats button)
+  - `src/components/game/layout/BottomBar.tsx` (Stats button)
+  - `src/components/game/characters/AchievementPanel.tsx` (queue de 3 simultáneas)
+- Screenshots: 2 nuevas en `/home/z/my-project/download/`
+
+Next agent should:
+1. Leer este worklog y los docs en `/home/z/my-project/docs/` para contexto.
+2. Agregar personaje "cliente visitante" visual para variant client-visit (similar a supervisor/gringo con modal).
+3. Implementar eventos especiales: "día del supervisor enojado" (supervisor aparece cada 30s), "visita del cliente" (badge visible durante toda la sesión).
+4. Considerar samples reales para música de fondo.
+5. Explorar internacionalización con next-intl.
+6. Verificar siempre con agent-browser después de implementar.
+7. Mantener `bun run lint` limpio.
+8. Anexar nuevo Task ID al final de este worklog.

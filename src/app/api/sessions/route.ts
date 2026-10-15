@@ -14,6 +14,32 @@ const SessionInputSchema = z.object({
   gringoEncounters: z.number().int().min(0),
 })
 
+export async function GET() {
+  try {
+    const sessions = await db.sessionLog.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      select: {
+        id: true,
+        mode: true,
+        durationSec: true,
+        ticketsCompleted: true,
+        finalScore: true,
+        errors: true,
+        gringoEncounters: true,
+        createdAt: true,
+      },
+    })
+    return NextResponse.json({ sessions, count: sessions.length })
+  } catch (err) {
+    console.error('GET /api/sessions error:', err)
+    return NextResponse.json(
+      { error: 'Failed to fetch sessions' },
+      { status: 500 }
+    )
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()

@@ -23,6 +23,7 @@ import {
 import { SeededRandom } from '@/lib/random'
 import { generateTicket } from '@/lib/tickets'
 import { useAchievementStore } from './achievementStore'
+import { useDailyChallengeStore } from './dailyChallengeStore'
 
 interface GameStoreState {
   // Pantalla y modo
@@ -286,6 +287,7 @@ export const useGameStore = create<GameStoreState>()(
         // Cumulative gringo encounters for achievements
         const achStore = useAchievementStore.getState()
         achStore.addCumulativeStats({ totalGringosAllTime: 1 })
+        const dailyStore = useDailyChallengeStore.getState()
         achStore.checkAchievements({
           score: s.score,
           combo: s.combo,
@@ -304,6 +306,8 @@ export const useGameStore = create<GameStoreState>()(
           totalGringosAllTime: achStore.totalGringosAllTime + 1,
           coffeeConsumed: achStore.coffeeConsumed,
           tacosConsumed: achStore.tacosConsumed,
+          dailyStreak: dailyStore.streak,
+          dailyCompletedTotal: dailyStore.totalCompleted,
         })
       },
 
@@ -358,6 +362,13 @@ export const useGameStore = create<GameStoreState>()(
           totalTicketsAllTime: 1,
           totalScoreAcrossRuns: s.currentTicket.baseScore + setupBonus,
         })
+        // Check if this was a daily challenge ticket
+        const isDaily = s.currentTicket.id.startsWith('DAILY-')
+        const dailyStore = useDailyChallengeStore.getState()
+        if (isDaily) {
+          dailyStore.recordAttempt(newScore)
+          dailyStore.markCompleted(newScore)
+        }
         // Check achievements with current stats
         achStore.checkAchievements({
           score: newScore,
@@ -377,6 +388,8 @@ export const useGameStore = create<GameStoreState>()(
           totalGringosAllTime: achStore.totalGringosAllTime,
           coffeeConsumed: achStore.coffeeConsumed,
           tacosConsumed: achStore.tacosConsumed,
+          dailyStreak: dailyStore.streak,
+          dailyCompletedTotal: dailyStore.totalCompleted,
         })
         get().loadNextTicket()
       },

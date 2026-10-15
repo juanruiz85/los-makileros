@@ -24,11 +24,16 @@ import {
   Boxes,
   Trophy,
   Award,
+  Calendar,
+  BarChart3,
 } from 'lucide-react'
 import type { GameMode } from '@/game/types'
 import { LeaderboardModal } from '@/components/game/layout/LeaderboardModal'
 import { AchievementPanel } from '@/components/game/characters/AchievementPanel'
+import { DailyChallengeModal } from '@/components/game/layout/DailyChallengeModal'
+import { StatsDashboard } from '@/components/game/layout/StatsDashboard'
 import { useAchievementStore } from '@/game/store/achievementStore'
+import { useDailyChallengeStore } from '@/game/store/dailyChallengeStore'
 
 const FLOATING_TOOLS = [
   { Icon: Scissors, x: '8%', y: '20%', delay: 0, duration: 7, color: 'text-amber-500/40' },
@@ -53,10 +58,14 @@ export function TitleScreen() {
 
   const [leaderboardOpen, setLeaderboardOpen] = useState(false)
   const [achievementsOpen, setAchievementsOpen] = useState(false)
+  const [dailyOpen, setDailyOpen] = useState(false)
+  const [statsOpen, setStatsOpen] = useState(false)
   const [clickCount, setClickCount] = useState(0)
   const [debugMode, setDebugMode] = useState(false)
   const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const totalUnlocked = useAchievementStore((s) => Object.keys(s.unlocked).length)
+  const dailyStreak = useDailyChallengeStore((s) => s.streak)
+  const dailyCompleted = useDailyChallengeStore((s) => s.current?.completed ?? false)
 
   const handleTitleClick = () => {
     const newCount = clickCount + 1
@@ -253,6 +262,14 @@ export function TitleScreen() {
                   </span>
                 )}
               </Button>
+              <Button
+                variant="outline"
+                className="flex-1 border-emerald-400 dark:border-emerald-500 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-950"
+                onClick={() => setStatsOpen(true)}
+              >
+                <BarChart3 className="w-4 h-4 mr-2" />
+                Stats
+              </Button>
             </div>
 
             {highscore > 0 && (
@@ -265,6 +282,45 @@ export function TitleScreen() {
                 </div>
               </div>
             )}
+
+            {/* Daily Challenge */}
+            <motion.button
+              whileHover={{ scale: 1.02, y: -2 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => {
+                audio.play('combo-chime')
+                setDailyOpen(true)
+              }}
+              className="mt-4 w-full p-3 bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-red-500/20 border-2 border-amber-500 rounded-lg flex items-center gap-3 hover:border-amber-400 transition-colors"
+            >
+              <motion.div
+                animate={{ rotate: [-3, 3, -3] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="w-10 h-10 rounded-lg bg-amber-500 flex items-center justify-center flex-shrink-0"
+              >
+                <Calendar className="w-6 h-6 text-stone-900" />
+              </motion.div>
+              <div className="flex-1 text-left">
+                <div className="text-[10px] font-mono uppercase tracking-widest text-amber-400">
+                  {dailyCompleted ? '¡Completado! Reintentar' : 'Nueva challenge diaria'}
+                </div>
+                <div className="font-black text-stone-900 dark:text-stone-100 text-sm">
+                  📅 Daily Challenge
+                </div>
+                <div className="text-[10px] font-mono text-stone-600 dark:text-stone-400">
+                  Score x2-x3 · Racha: {dailyStreak} 🔥
+                </div>
+              </div>
+              {dailyStreak > 0 && (
+                <motion.div
+                  animate={{ scale: [1, 1.15, 1] }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                  className="text-2xl"
+                >
+                  {dailyStreak >= 3 ? '🔥' : '✨'}
+                </motion.div>
+              )}
+            </motion.button>
           </Card>
         </motion.div>
 
@@ -301,6 +357,12 @@ export function TitleScreen() {
 
       {/* Achievements Modal */}
       <AchievementPanel open={achievementsOpen} onOpenChange={setAchievementsOpen} />
+
+      {/* Daily Challenge Modal */}
+      <DailyChallengeModal open={dailyOpen} onOpenChange={setDailyOpen} />
+
+      {/* Stats Dashboard Modal */}
+      <StatsDashboard open={statsOpen} onOpenChange={setStatsOpen} />
     </div>
   )
 }

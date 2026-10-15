@@ -23,9 +23,11 @@ import {
   Accessibility,
   Zap,
   Award,
+  BarChart3,
 } from 'lucide-react'
 import { WarehouseSheet } from './WarehouseSheet'
 import { AchievementPanel } from '@/components/game/characters/AchievementPanel'
+import { StatsDashboard } from '@/components/game/layout/StatsDashboard'
 import { useAchievementStore } from '@/game/store/achievementStore'
 import { useTheme } from 'next-themes'
 
@@ -68,6 +70,7 @@ export function BottomBar() {
   const [warehouseOpen, setWarehouseOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [achievementsOpen, setAchievementsOpen] = useState(false)
+  const [statsOpen, setStatsOpen] = useState(false)
   const totalUnlocked = useAchievementStore((s) => Object.keys(s.unlocked).length)
   const cables = useInventoryStore((s) => s.cables.length)
   const coffeePending = useInventoryStore((s) => s.coffeePending)
@@ -213,11 +216,25 @@ export function BottomBar() {
         )}
       </Button>
 
+      {/* Stats Dashboard */}
+      <Button
+        variant="outline"
+        size="icon"
+        className="bg-stone-800 border-stone-600 text-stone-100 hover:bg-stone-700"
+        onClick={() => setStatsOpen(true)}
+        title="Estadísticas"
+      >
+        <BarChart3 className="w-4 h-4" />
+      </Button>
+
       {/* Warehouse Sheet */}
       <WarehouseSheet open={warehouseOpen} onOpenChange={setWarehouseOpen} />
 
       {/* Achievements Modal */}
       <AchievementPanel open={achievementsOpen} onOpenChange={setAchievementsOpen} />
+
+      {/* Stats Dashboard Modal */}
+      <StatsDashboard open={statsOpen} onOpenChange={setStatsOpen} />
 
       {/* Settings Modal */}
       <AnimatePresence>

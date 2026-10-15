@@ -40,66 +40,83 @@ function useAchievementWatcher() {
 
 export function AchievementNotification() {
   const { newlyUnlockedIds, clearAchievement } = useAchievementWatcher()
-  const [current, setCurrent] = useState<string | null>(null)
+  const [activeQueue, setActiveQueue] = useState<string[]>([])
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set())
+  const timersRef = React.useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
 
-  // Pick first achievement to show, queue others
+  // Pick first achievement to show, queue others (max 3 visible at once)
   useEffect(() => {
-    if (newlyUnlockedIds.length > 0 && !current) {
-      const next = newlyUnlockedIds[0]
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setCurrent(next)
-      audio.play('combo-chime')
-      const t = setTimeout(() => {
-        clearAchievement(next)
-        setCurrent(null)
-      }, 4000)
-      return () => clearTimeout(t)
+    if (newlyUnlockedIds.length > 0 && activeQueue.length < 3) {
+      const next = newlyUnlockedIds.filter((id) => !activeQueue.includes(id) && !dismissed.has(id))[0]
+      if (next) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setActiveQueue((q) => [...q, next])
+        audio.play('combo-chime')
+        const t = setTimeout(() => {
+          // Mark as dismissed and remove from queue
+          setDismissed((s) => new Set(s).add(next))
+          setActiveQueue((q) => q.filter((x) => x !== next))
+          clearAchievement(next)
+        }, 4500)
+        timersRef.current.set(next, t)
+      }
     }
-  }, [newlyUnlockedIds, current, clearAchievement])
+  }, [newlyUnlockedIds, activeQueue, dismissed, clearAchievement])
 
-  const def = current ? ACHIEVEMENT_DEFS.find((a) => a.id === current) : null
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      timersRef.current.forEach((t) => clearTimeout(t))
+      timersRef.current.clear()
+    }
+  }, [])
 
   return (
-    <AnimatePresence>
-      {def && (
-        <motion.div
-          key={def.id}
-          initial={{ x: 400, opacity: 0, scale: 0.8 }}
-          animate={{ x: 0, opacity: 1, scale: 1 }}
-          exit={{ x: 400, opacity: 0, scale: 0.8 }}
-          transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-          className="fixed top-20 right-4 z-[55] max-w-xs pointer-events-none"
-        >
-          <div className="bg-stone-900 border-2 border-amber-500 rounded-xl p-3 shadow-2xl flex items-center gap-3">
+    <div className="fixed top-20 right-4 z-[55] max-w-xs pointer-events-none flex flex-col gap-2">
+      <AnimatePresence>
+        {activeQueue.map((id, idx) => {
+          const def = ACHIEVEMENT_DEFS.find((a) => a.id === id)
+          if (!def) return null
+          return (
             <motion.div
-              animate={{ rotate: [-5, 5, -5, 0], scale: [1, 1.2, 1] }}
-              transition={{ duration: 0.5 }}
-              className="w-12 h-12 rounded-lg bg-amber-500/20 border-2 border-amber-500 flex items-center justify-center text-2xl flex-shrink-0"
+              key={def.id}
+              initial={{ x: 400, opacity: 0, scale: 0.8 }}
+              animate={{ x: 0, opacity: 1, scale: 1 }}
+              exit={{ x: 400, opacity: 0, scale: 0.8 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 20, delay: idx * 0.1 }}
             >
-              {def.emoji}
+              <div className="bg-stone-900 border-2 border-amber-500 rounded-xl p-3 shadow-2xl flex items-center gap-3">
+                <motion.div
+                  animate={{ rotate: [-5, 5, -5, 0], scale: [1, 1.2, 1] }}
+                  transition={{ duration: 0.5 }}
+                  className="w-12 h-12 rounded-lg bg-amber-500/20 border-2 border-amber-500 flex items-center justify-center text-2xl flex-shrink-0"
+                >
+                  {def.emoji}
+                </motion.div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[9px] font-mono uppercase tracking-widest text-amber-400">
+                    Logro desbloqueado
+                  </div>
+                  <div className="font-black text-stone-100 text-sm truncate">
+                    {def.label}
+                  </div>
+                  <div className="text-xs text-stone-400 truncate">
+                    {def.description}
+                  </div>
+                </div>
+                <motion.div
+                  animate={{ opacity: [0, 1, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                  className="text-amber-400 text-lg flex-shrink-0"
+                >
+                  ✨
+                </motion.div>
+              </div>
             </motion.div>
-            <div className="flex-1 min-w-0">
-              <div className="text-[9px] font-mono uppercase tracking-widest text-amber-400">
-                Logro desbloqueado
-              </div>
-              <div className="font-black text-stone-100 text-sm truncate">
-                {def.label}
-              </div>
-              <div className="text-xs text-stone-400 truncate">
-                {def.description}
-              </div>
-            </div>
-            <motion.div
-              animate={{ opacity: [0, 1, 0] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-              className="text-amber-400 text-lg flex-shrink-0"
-            >
-              ✨
-            </motion.div>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+          )
+        })}
+      </AnimatePresence>
+    </div>
   )
 }
 
