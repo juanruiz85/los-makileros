@@ -120,3 +120,47 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Animación de banda transportadora */
+@keyframes band {
+  from { background-position: 0 0; }
+  to { background-position: 56.57px 56.57px; }
+}
+
+/* Scrollbar custom industrial */
+.custom-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.custom-scroll::-webkit-scrollbar-track {
+  background: theme(colors.stone.200);
+  border-radius: 4px;
+}
+.custom-scroll::-webkit-scrollbar-thumb {
+  background: theme(colors.stone.400);
+  border-radius: 4px;
+}
+.custom-scroll::-webkit-scrollbar-thumb:hover {
+  background: theme(colors.stone.500);
+}
+.dark .custom-scroll::-webkit-scrollbar-track {
+  background: theme(colors.stone.800);
+}
+.dark .custom-scroll::-webkit-scrollbar-thumb {
+  background: theme(colors.stone.600);
+}
+.dark .custom-scroll::-webkit-scrollbar-thumb:hover {
+  background: theme(colors.stone.500);
+}
+
+/* Previene touch scroll cuando se arrastra */
+.touch-none {
+  touch-action: none;
+}
+
+/* Sin selección de texto en elementos arrastrables */
+.select-none {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
