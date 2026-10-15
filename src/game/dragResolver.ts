@@ -58,6 +58,12 @@ export function resolveDragEnd(event: DragEndEvent) {
     case 'splice->splice-band':
       return handleSpliceToBand()
 
+    // === PRENSAS ===
+    case 'cable->press-cable':
+      return handleCableToPress(data.payload as Cable)
+    case 'terminal->press-term':
+      return handleTerminalToPress(data.payload as Terminal)
+
     // === HARNESS ===
     case 'cable->harness-board':
       return handleCableToHarness(data.payload as Cable)
@@ -180,6 +186,34 @@ function handleCableToTrash(cable: Cable) {
 function handleTerminalToTrash(terminal: Terminal) {
   const inv = useInventoryStore.getState()
   inv.removeTerminal(terminal.id)
+  audio.play('click-ok')
+}
+
+// === PRENSAS ===
+
+function handleCableToPress(cable: Cable) {
+  const station = useStationStore.getState()
+  const inv = useInventoryStore.getState()
+  // Solo cables cortados
+  if (!cable.cut) {
+    audio.play('buzz-fail')
+    useEventStore.getState().setSubtitle(
+      '⚠ Solo cables cortados van a la prensa',
+      'text-amber-500',
+      3000,
+    )
+    return
+  }
+  inv.removeFromWip(cable.id)
+  station.setPressCable({ ...cable, origin: 'station' })
+  audio.play('click-ok')
+}
+
+function handleTerminalToPress(terminal: Terminal) {
+  const station = useStationStore.getState()
+  const inv = useInventoryStore.getState()
+  inv.removeTerminal(terminal.id)
+  station.setPressTerminal({ ...terminal, used: true })
   audio.play('click-ok')
 }
 

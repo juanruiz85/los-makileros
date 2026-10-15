@@ -43,11 +43,35 @@ export function TicketPanel() {
             <div className="font-mono font-black text-xl text-stone-900 dark:text-amber-300">
               {ticket.partNumber}
             </div>
-            {ticket.sameSetupAsPrevious && (
-              <div className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 bg-emerald-500 text-white rounded-full text-[10px] font-bold">
-                <Recycle className="w-3 h-3" /> Setup Ahorrable
-              </div>
-            )}
+            <div className="flex flex-wrap justify-center gap-1 mt-1">
+              {ticket.variantLabel && ticket.variant !== 'standard' && (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 300 }}
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                    ticket.variant === 'rush'
+                      ? 'bg-red-500 text-white animate-pulse'
+                      : ticket.variant === 'bulk'
+                        ? 'bg-blue-500 text-white'
+                        : ticket.variant === 'splice-heavy'
+                          ? 'bg-purple-500 text-white'
+                          : ticket.variant === 'no-terminal'
+                            ? 'bg-stone-500 text-white'
+                            : ticket.variant === 'long-roll'
+                              ? 'bg-cyan-500 text-white'
+                              : 'bg-stone-500 text-white'
+                  }`}
+                >
+                  {ticket.variantLabel}
+                </motion.div>
+              )}
+              {ticket.sameSetupAsPrevious && (
+                <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-500 text-white rounded-full text-[10px] font-bold">
+                  <Recycle className="w-3 h-3" /> Setup Ahorrable
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Datos del ticket */}

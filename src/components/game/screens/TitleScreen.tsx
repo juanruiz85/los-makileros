@@ -10,8 +10,31 @@ import { audio } from '@/lib/audio'
 import { T } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Scissors, Zap, Wrench, TrendingUp, BookOpen } from 'lucide-react'
+import {
+  Scissors,
+  Zap,
+  Wrench,
+  TrendingUp,
+  BookOpen,
+  Cable,
+  Hammer,
+  Cog,
+  Factory,
+  FlaskConical,
+  Boxes,
+} from 'lucide-react'
 import type { GameMode } from '@/game/types'
+
+const FLOATING_TOOLS = [
+  { Icon: Scissors, x: '8%', y: '20%', delay: 0, duration: 7, color: 'text-amber-500/40' },
+  { Icon: Cable, x: '85%', y: '25%', delay: 1, duration: 8, color: 'text-red-500/30' },
+  { Icon: Hammer, x: '15%', y: '70%', delay: 2, duration: 9, color: 'text-stone-700/40' },
+  { Icon: Wrench, x: '90%', y: '75%', delay: 1.5, duration: 6, color: 'text-orange-500/40' },
+  { Icon: Factory, x: '50%', y: '12%', delay: 0.5, duration: 10, color: 'text-stone-700/30' },
+  { Icon: Cog, x: '92%', y: '50%', delay: 2.5, duration: 12, color: 'text-stone-700/40' },
+  { Icon: FlaskConical, x: '5%', y: '50%', delay: 1.8, duration: 8.5, color: 'text-purple-500/30' },
+  { Icon: Boxes, x: '78%', y: '85%', delay: 0.8, duration: 9.5, color: 'text-emerald-500/30' },
+]
 
 export function TitleScreen() {
   const start = useGameStore((s) => s.start)
@@ -55,6 +78,31 @@ export function TitleScreen() {
         transition={{ duration: 1.5, repeat: Infinity, repeatType: 'reverse' }}
         className="absolute -bottom-40 -right-40 w-96 h-96 bg-red-500/20 rounded-full blur-3xl"
       />
+
+      {/* Floating tool icons (background ambiance) */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {FLOATING_TOOLS.map(({ Icon, x, y, delay, duration, color }, i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, y: 0, rotate: 0 }}
+            animate={{
+              opacity: [0, 0.6, 0],
+              y: [0, -30, 0],
+              rotate: [0, 8, -8, 0],
+            }}
+            transition={{
+              duration,
+              repeat: Infinity,
+              delay,
+              ease: 'easeInOut',
+            }}
+            style={{ left: x, top: y }}
+            className={`absolute ${color}`}
+          >
+            <Icon className="w-12 h-12 md:w-16 md:h-16" />
+          </motion.div>
+        ))}
+      </div>
 
       <div className="relative z-10 flex flex-col items-center gap-6 px-4 max-w-4xl w-full">
         {/* Logo / Título */}

@@ -17,6 +17,7 @@ import { CharacterLayer } from './characters/CharacterLayer'
 import { EffectsLayer } from './effects/EffectsLayer'
 import { SubtitleBar } from './hud/SubtitleBar'
 import { MaintenanceModal } from './characters/MaintenanceModal'
+import { QualityAuditModal } from './characters/QualityAuditModal'
 import { CharacterDropZone } from './characters/CharacterDropZone'
 
 export function GameApp() {
@@ -62,6 +63,8 @@ export function GameApp() {
           <CharacterDropZone />
           {/* Modal de mantenimiento (bloqueante) */}
           <MaintenanceModal />
+          {/* Modal de auditoría de calidad */}
+          <QualityAuditModal />
         </main>
         <GameFooter />
       </div>

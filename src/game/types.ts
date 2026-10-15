@@ -54,6 +54,14 @@ export interface Harness {
 }
 
 // === Tickets ===
+export type TicketVariant =
+  | 'standard'
+  | 'rush'
+  | 'bulk'
+  | 'splice-heavy'
+  | 'no-terminal'
+  | 'long-roll'
+
 export interface Ticket {
   id: string
   partNumber: string
@@ -69,6 +77,8 @@ export interface Ticket {
   timeBonusOnComplete: number
   sameSetupAsPrevious: boolean
   status: 'active' | 'completed' | 'failed'
+  variant?: TicketVariant
+  variantLabel?: string
 }
 
 // === Eventos ===

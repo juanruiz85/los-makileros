@@ -371,3 +371,146 @@ Next agent should:
 5. Verificar siempre con agent-browser después de implementar.
 6. Mantener `bun run lint` limpio.
 7. Anexar nuevo Task ID al final de este worklog.
+
+---
+Task ID: 3-f3.2-f6.2-tickets-settings
+Agent: Z.ai Code (cron-triggered autonomous agent — 3ra iteración)
+Task: Implementar F3.2 (PressStation completa con aplicador + escáner + cable + terminal + PRENSAR), F6.2 (QualityAuditModal con 3 circuitos), variantes de tickets, settings modal funcional. Verificar con agent-browser.
+
+Work Log:
+- Leí el worklog anterior (Task 2-f3-f4-f5-f6) que confirmó F3 (Splices), F4 (Harness), F5 (Warehouse), F6 (Maintenance) completados.
+- Verifiqué dev server corriendo (logs exitosos, GET / 200).
+- QA inicial con agent-browser: title screen carga, modo Normal funciona, todas las estaciones visibles.
+- **F3.2: PressStation** completamente refactorizada en `src/components/game/stations/PressStation.tsx` (~440 líneas):
+  - Flujo guiado de 4 pasos: 1. Aplicador → 2. Escanea Tool ID → 3. Cable + Terminal → 4. PRENSAR
+  - 3 botones de aplicador (FT-250-A, FT-110-A, RING-8-A) con código de color según si coincen con el terminalA del ticket
+  - Sugerencia automática del aplicador correcto basado en terminalA del ticket
+  - Botón "ESCANEAR TOOL ID" con barra de progreso animada (laser sweep + amber bar)
+  - Tras escaneo exitoso: badge "VALIDADO" + audio click-ok + subtítulo "✓ Tool ID validado"
+  - 2 dropzones (press-cable, press-term) con visual de cable y terminal
+  - Botón "PRENSAR" gigante con pulse animation cuando canPress, animación de pistón (Hammer icon) durante pressing
+  - Validación: si aplicador incorrecto → falla (-100 pts, -5s, trigger Maintenance, cable defectuoso al WIP)
+  - Éxito: +70 pts, +4s, +combo, cable prensado (con terminal aplicado) al WIP
+  - Resetea scanner cuando se cambia aplicador (via useEffect con lastEventIdRef pattern)
+- **F6.2: QualityAuditModal** creada en `src/components/game/characters/QualityAuditModal.tsx` (~270 líneas):
+  - Modal bloqueante con backdrop-blur purple
+  - 3 circuitos visuales generados proceduralmente (color aleatorio)
+  - 1 de los 3 tiene un error oculto (broken, no-terminal, wrong-color) con indicador visual sutil
+  - Drag & drop del circuito defectuoso a la basura (audit-trash dropzone)
+  - ÉXITO: "✓ Conforme. ¡Buen ojo!" +50 pts + combo + combo-chime + ticket-done
+  - FALLO: "✗ No Conformidad" -75 pts + breakCombo + registerError + buzz-fail
+  - Congela el timer principal mientras está abierto (setTimerFrozen(true))
+  - Auto-cierra después de 1.8s con cleanup de timer
+  - Hint "La auditoría congela el timer. ¡Identifica el error rápido!"
+- **dragResolver.ts** ampliado con casos press:
+  - `cable->press-cable`: handleCableToPress (solo cables cortados del WIP, si no cut → buzz + subtitle)
+  - `terminal->press-term`: handleTerminalToPress (quita del inventario, pone en station)
+- **Variantes de tickets** en `src/lib/tickets.ts`:
+  - 6 variantes con probabilidades weighted: standard (50%), rush (12%), bulk (10%), splice-heavy (8%), no-terminal (10%), long-roll (10%)
+  - RUSH: 1.5x baseScore, timeBonus reducido a 5s, pocos circuitos (2-6) para rapidez, badge "⚡ RUSH" rojo pulsante
+  - BULK: 1.3x baseScore, muchos circuitos (18-24), badge "📦 BULK" azul
+  - SPLICE-HEAVY: 1.4x baseScore, needsSplice=true forzado, needsHarness=true forzado, badge "🔌 SPLICE" purple
+  - NO-TERMINAL: terminales NONE en ambos, badge "🚫 NO TERM" stone
+  - LONG-ROLL: cable >400mm, 1.15x baseScore, badge "📏 LONG" cyan
+  - Actualizado TicketPanel para mostrar variant badges prominentes con animación de spring al aparecer
+  - Tipo `TicketVariant` y `variant`/`variantLabel` agregados a interface Ticket en types.ts
+- **Settings modal funcional** en `src/components/game/layout/BottomBar.tsx`:
+  - Slider de volumen de efectos (0-100%) que controla audio.setSfxVolume en tiempo real
+  - Toggle de música de fondo (Switch)
+  - Toggle de tema claro/oscuro (usando next-themes useTheme)
+  - Toggle de "Reducir movimiento" (accessibility)
+  - Persistencia en localStorage (makileros:settings key)
+  - Aplica settings al AudioManager en useEffect cuando cambian
+  - Maneja hydration mismatch con themeMounted state
+- **ScoreBoard enhanced** en `src/components/game/hud/ScoreBoard.tsx`:
+  - Animación de "+N" flotante cuando el score cambia (positivo emerald, negativo red)
+  - Animación de scale al cambiar el número
+  - Floats up 40px en 1.2s
+- **TitleScreen enhanced**:
+  - 8 íconos flotantes en el background (Scissors, Cable, Hammer, Wrench, Factory, Cog, FlaskConical, Boxes)
+  - Animaciones con delays y durations distintos para asíncrono
+  - Colores con opacity para no distraer del contenido principal
+- **GameApp.tsx** actualizado: monta QualityAuditModal en overlay layer
+- **Fix de bug React**: el error "Cannot update a component while rendering a different component" fue causado por llamar `setScannerDone(true)` (zustand store action) dentro del updater de `setScanProgress` (React setState). Lo arreglé deferreando las store updates con `setTimeout(..., 0)` para que se ejecuten en el siguiente tick.
+- Lint: `bun run lint` → exit code 0 (limpio).
+- Verifiqué con agent-browser:
+  - Title screen carga con todos los modos
+  - Game completo: Click Normal → entra al juego
+  - Tickets con variantes funcionando: variant="rush" badge ⚡ RUSH visible en ticket panel; variant="long-roll" badge 📏 LONG visible
+  - PressStation: aplicadores seleccionables, escaner con barra animada, VALIDADO confirmation sin errores de React
+  - Settings modal: abre correctamente, sliders y toggles funcionales, persiste en localStorage
+  - ScoreBoard: animación flotante de +50 cuando se corta cable correcto
+  - Sin errores de React en consola (resuelto el setState durante render)
+- Capturas de pantalla en `/home/z/my-project/download/`:
+  - `title-screen-v3.png` — title con partículas flotantes
+  - `game-screen-v3.png` — gameplay con variant badge
+  - `press-station-v3.png` — press estación inicial
+  - `press-station-validated.png` — press con scanner VALIDADO
+  - `settings-modal-v3.png` — settings modal funcional
+  - `game-over-v3.png` — game over con stats
+
+Stage Summary:
+- **Fase F3.2 (Prensas) completada**: estación totalmente funcional con aplicador selector + escáner Tool ID animado + dropzones cable/terminal + botón PRENSAR con animación de pistón + validación.
+- **Fase F6.2 (Quick Audit) completada**: modal bloqueante con 3 circuitos donde hay que identificar el defectuoso arrastrándolo a la basura.
+- **Variantes de tickets implementadas**: 6 variantes con badges visuales diferentes y scoring ajustado.
+- **Settings modal funcional**: volumen, música, tema, reduce motion con persistencia localStorage.
+- **Bug React resuelto**: setState durante render arreglado deferreando store updates.
+- **Styling mejorado**: ScoreBoard con delta flotante, TitleScreen con 8 partículas, badges animados.
+- **QA exitoso**: lint limpio, sin errores de React en consola, todas las estaciones funcionales.
+
+Current project status description/assessment:
+- **Estado del juego:** Completo y jugable end-to-end. Todas las estaciones activas (Corte, Splices, Prensas, Harness). Loop principal completo con variantes de tickets.
+- **Características implementadas (acumuladas):**
+  - 4 estaciones totalmente funcionales: Corte + Splices (con banda+horno) + Prensas (con aplicador+scanner+animación de pistón) + Harness (con prueba eléctrica BUZZ)
+  - Almacén funcional con delivery + modo apurado + power-ups
+  - 2 mini-juegos modales: Mantenimiento (3 herramientas) + Quick Audit (3 circuitos)
+  - Eventos aleatorios: Supervisor warn/angry, Gringo, Chisme, Maintenance (con modal), QualityAudit (con modal)
+  - 6 variantes de tickets con badges visuales: standard, rush, bulk, splice-heavy, no-terminal, long-roll
+  - Sistema de combos x3 → Modo Rápido
+  - Power-ups: Café + Taco
+  - Settings modal funcional (volumen, música, tema, reduce motion)
+  - Pantallas: Title (con partículas), How To Play (5 slides), Game (responsive), Paused, Game Over (con stats + highscore)
+  - Persistencia localStorage (auto-save + settings + highscore)
+  - 15+ SFX sintetizados con Web Audio API
+  - ScoreBoard con delta flotante animado
+
+Current goals/completed modifications/verification results:
+- ✅ Meta 1: F3.2 (PressStation) completa con aplicador + scanner + cable + terminal + PRENSAR
+- ✅ Meta 2: F6.2 (QualityAuditModal) completa con 3 circuitos y arrastrar defectuoso
+- ✅ Meta 3: 6 variantes de tickets con badges visuales y scoring ajustado
+- ✅ Meta 4: Settings modal funcional con sliders y toggles
+- ✅ Meta 5: Fix bug React setState durante render
+- ✅ Meta 6: ScoreBoard con animación de delta flotante
+- ✅ Meta 7: TitleScreen con partículas flotantes (8 icons)
+- ✅ Meta 8: Verificación con agent-browser exitosa, lint limpio
+
+Unresolved issues or risks, and priority recommendations for the next phase:
+1. **Modo Caótico balance** — el modo caótico no está balanceado (Gringo cada 45s + 50% eventos puede ser muy difícil)
+2. **Prisma ranking online** — no se ha implementado el leaderboard con Prisma SQLite
+3. **Más variedad de gringo phrases** — solo 6 frases actualmente; podría expandir
+4. **Drag onto harness board via agent-browser** sigue siendo complicado (Auto-rellenar soluciona el testing)
+5. **Sonido de música de fondo** actualmente es muy básico (osciladores); podría usar samples reales
+6. **Recomendación para próxima fase:** Implementar Prisma ranking online + leaderboard modal + más variantes de eventos especiales.
+
+Artifacts produced (nuevos en esta sesión):
+- `src/components/game/stations/PressStation.tsx` (refactorizado, ~440 líneas)
+- `src/components/game/characters/QualityAuditModal.tsx` (~270 líneas)
+- Modificados:
+  - `src/lib/tickets.ts` (variantes)
+  - `src/game/types.ts` (TicketVariant + variant/variantLabel)
+  - `src/components/game/layout/TicketPanel.tsx` (variant badges)
+  - `src/components/game/layout/BottomBar.tsx` (settings modal funcional)
+  - `src/components/game/hud/ScoreBoard.tsx` (delta flotante)
+  - `src/components/game/screens/TitleScreen.tsx` (8 partículas)
+  - `src/components/game/GameApp.tsx` (monta QualityAuditModal)
+  - `src/game/dragResolver.ts` (casos press-cable/term)
+- Screenshots: 6 nuevas en `/home/z/my-project/download/`
+
+Next agent should:
+1. Leer este worklog y los docs en `/home/z/my-project/docs/` para contexto.
+2. Implementar F8 (Ranking Online con Prisma + API routes + leaderboard modal con input de iniciales).
+3. Agregar más variedad a gringo phrases y supervisor phrases.
+4. Considerar implementar ajustes adicionales: música sintetizada más rica, easter eggs (5x click en logo → debug).
+5. Verificar siempre con agent-browser después de implementar.
+6. Mantener `bun run lint` limpio.
+7. Anexar nuevo Task ID al final de este worklog.
