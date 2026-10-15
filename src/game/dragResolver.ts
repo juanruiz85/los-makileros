@@ -435,6 +435,9 @@ function handlePowerupConsume(payload: { type: 'coffee' | 'taco' }) {
       dailyCompletedTotal: 0,
       clientVisits: achStore.clientVisits,
       supervisorRampages: achStore.supervisorRampages,
+      tacoDays: achStore.tacoDays,
+      ceoVisits: achStore.ceoVisits,
+      shortCircuits: achStore.shortCircuits,
     })
     setTimeout(() => {
       useGameStore.getState().setTimerFrozen(false)

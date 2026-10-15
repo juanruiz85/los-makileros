@@ -94,6 +94,9 @@ export type EventKind =
   | 'quality-audit'
   | 'client-visit'
   | 'supervisor-rampage'
+  | 'taco-day-event'
+  | 'short-circuit'
+  | 'ceo-visit'
 
 export interface GameEvent {
   id: string

@@ -180,6 +180,9 @@ export const EVENT_DURATION_SEC: Record<EventKind, number> = {
   'quality-audit': 12,
   'client-visit': 6,
   'supervisor-rampage': 10,
+  'taco-day-event': 8,
+  'short-circuit': 10,
+  'ceo-visit': 8,
 }
 
 // === Mensajes del Gringo (espanglish) ===
@@ -265,4 +268,28 @@ export const SUPERVISOR_RAMPAGE_PHRASES = [
   '¡Si alguien se equivoca, lo mando al almacén!',
   '¡El Gringo me dijo que si no cumplimos, despide gente!',
   '¡Cero tolerancia! ¡Cero errores! ¡Cero excusas!',
+]
+
+// === Día del Taco (todos los pedidos traen taco) ===
+export const TACO_DAY_EVENT_PHRASES = [
+  '¡Hoy es día del taco! Todos los pedidos traen taco gratis 🌮',
+  '¡Festejamos! Cada pedido viene con un taco de canasta 🌮',
+  '¡Día especial! La cocina regaló tacos para todos 🌮',
+  '¡Atención! Día del taco: power-up garantizado en cada entrega 🌮',
+]
+
+// === Cortocircuito (máquina se apaga) ===
+export const SHORT_CIRCUIT_PHRASES = [
+  '¡BZZZ! ¡Cortocircuito! Las máquinas se reinician ⚡',
+  '¡Se fue la luz! Todas las estaciones en cooldown 🔌',
+  '¡Sobrecarga! Las máquinas necesitan descansar 10s ⚡',
+  '¡Cortocircuito! Mantenimiento automático activado 🔧',
+]
+
+// === Visita del CEO (score x3 pero errores x2) ===
+export const CEO_VISIT_PHRASES = [
+  '¡EL CEO está aquí! Todo cuenta el triple 👔',
+  '¡Visita del CEO! Score x3 pero cuidado con los errores 👔',
+  '¡El jefe máximo llegó! Demuéstrale tu talento 👔',
+  '¡Atención! El CEO está observando. Cada acción cuenta el triple 👔',
 ]

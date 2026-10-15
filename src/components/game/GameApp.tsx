@@ -23,6 +23,7 @@ import { CharacterDropZone } from './characters/CharacterDropZone'
 import { AchievementNotification } from './characters/AchievementPanel'
 import { SpecialEventsIndicator } from './characters/SpecialEventsIndicator'
 import { TurboModeIndicator } from './effects/TurboModeIndicator'
+import { InteractiveTutorial } from './screens/InteractiveTutorial'
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts'
 import { audio } from '@/lib/audio'
 
@@ -104,6 +105,8 @@ export function GameApp() {
           <SpecialEventsIndicator />
           {/* Turbo Mode indicator (Konami code) */}
           <TurboModeIndicator active={turboMode} />
+          {/* Interactive Tutorial (first play only) */}
+          <InteractiveTutorial />
           {/* Konami progress hint */}
           {konamiState.progress > 0 && !konamiState.activated && (
             <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-3 py-1.5 bg-stone-900/95 border border-amber-500 rounded-lg text-amber-400 text-[10px] font-mono uppercase tracking-widest pointer-events-none">

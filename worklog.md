@@ -1155,3 +1155,153 @@ Next agent should:
 6. Verificar siempre con agent-browser después de implementar.
 7. Mantener `bun run lint` limpio.
 8. Anexar nuevo Task ID al final de este worklog.
+
+---
+Task ID: 8-new-events-tutorial
+Agent: Z.ai Code (cron-triggered autonomous agent — 8va iteración)
+Task: Implementar 3 nuevos eventos especiales (Día del Taco, Cortocircuito, Visita del CEO), tutorial interactivo dentro del juego, 3 logros nuevos, SpecialEventsIndicator ampliado a 5 tipos. Verificar con agent-browser.
+
+Work Log:
+- Leí el worklog anterior (Task 7-client-events-shortcuts-music) que confirmó cliente visitante, supervisor rampage, keyboard shortcuts, música mejorada, 26 logros.
+- Verifiqué dev server corriendo (logs exitosos, GET / 200).
+- QA inicial con agent-browser: title screen carga con todos los botones.
+- **3 nuevos EventKinds** agregados a types.ts: 'taco-day-event', 'short-circuit', 'ceo-visit'
+- **3 nuevos conjuntos de frases** en constants.ts:
+  - TACO_DAY_EVENT_PHRASES: 4 frases ("¡Hoy es día del taco! Todos los pedidos traen taco gratis 🌮")
+  - SHORT_CIRCUIT_PHRASES: 4 frases ("¡BZZZ! ¡Cortocircuito! Las máquinas se reinician ⚡")
+  - CEO_VISIT_PHRASES: 4 frases ("¡EL CEO está aquí! Todo cuenta el triple 👔")
+  - EVENT_DURATION_SEC ampliado con taco-day-event (8s), short-circuit (10s), ceo-visit (8s)
+- **EventStore ampliado** con 3 nuevos spawn actions + 6 nuevos campos de estado:
+  - spawnTacoDay(): 45s duración, otorga taco power-up en cada ticket completado
+  - spawnShortCircuit(): 10s duración, congela timer + todas las estaciones bloqueadas
+  - spawnCEOVisit(): 60s duración, score x3 en todos los tickets completados
+  - Nuevos campos: tacoDayActive/Until, ceoVisitActive/Until, shortCircuitActive/Until
+  - clearExpiredSpecialEvents ampliado para limpiar los 5 tipos de eventos especiales
+  - reset ampliado con los 6 nuevos campos
+  - Cada spawn action llama achStore.addCumulativeStats para tracking de logros
+- **Game Loop ampliado** en use-game-loop.ts:
+  - specialEventAccum ahora maneja 5 tipos de eventos especiales
+  - Probabilidades: Client Visit 10%, Supervisor Rampage 8% (normal) / 16% (chaos), Taco Day 6%, Short Circuit 5%, CEO Visit 3%
+  - Short circuit congela timer durante 10s via setTimerFrozen(true) + setTimeout
+- **gameStore ampliado**: reportTicketCompleted ahora aplica:
+  - x2 si clientVisitActive (existente)
+  - x3 si ceoVisitActive (nuevo)
+  - grantTaco() si tacoDayActive (nuevo, además del variant taco-day)
+- **SpecialEventsIndicator refactorizado** completamente (~120 líneas):
+  - 5 tipos de badges con colores diferenciados:
+    - Client Visit: emerald (Eye icon pulsante)
+    - Supervisor Rampage: red (Flame icon rotando)
+    - Taco Day: orange (Cookie icon pulsante) — nota: Taco icon no existe en lucide-react, usé Cookie
+    - CEO Visit: amber (Crown icon pulsante)
+    - Short Circuit: yellow (Zap icon rotando)
+  - Componente SpecialBadge reutilizable con props color/icon/title/subtitle/iconAnim
+  - Countdown en tiempo real (re-render cada 500ms)
+  - Animaciones spring de entrada/salida
+- **CharacterLayer ampliado** con 3 nuevos banners:
+  - TacoDayBanner: banner centrado top con bg orange + border orange-300, emoji 🌮 rotando, glow pulsante
+  - ShortCircuitBanner: overlay full-screen con bg yellow-400/20, emoji ⚡ escalando, shake animation, "¡CORTOCIRCUITO!" en yellow-400 con border yellow-600
+  - CEOVisitBanner: banner centrado top con gradient amber→yellow, emoji 👔 rotando, glow amber pulsante, "¡Visita del CEO!"
+- **3 logros nuevos** en achievementStore (total: 26 → 29):
+  - taco-feast (🌮 Fiesta del taco): experimenta un día del taco
+  - ceo-impressed (👔 CEO impresionado): completa un ticket durante la visita del CEO
+  - electrician (⚡ Electricista): sobrevive a 3 cortocircuitos (acumulativo)
+  - Nuevos campos en AchievementCheckStats: tacoDays, ceoVisits, shortCircuits
+  - Nuevos campos en store state + initial + partialize
+- **InteractiveTutorial** creado en `src/components/game/screens/InteractiveTutorial.tsx` (~200 líneas):
+  - 10 pasos de tutorial guiado con posiciones dinámicas (center, top-left, top-right, bottom-center)
+  - Auto-abre en primer play si no se ha visto (localStorage makileros:tutorial-seen)
+  - Botones Anterior/Siguiente/Saltar
+  - Progress dots (X/10)
+  - Animaciones spring por step change
+  - Contenido: bienvenida, leer ticket, arrastrar cable, poner terminales, CORTAR, reportar, El Gringo, combos, atajos teclado, despedida
+  - Marca como visto al cerrar/saltar
+- **GameApp ampliado**: monta InteractiveTutorial
+- Verifiqué con agent-browser:
+  - Title screen: botones Ranking/Logros/Stats + Daily Challenge featured
+  - Click Logros → modal muestra "Progreso 0/29 0% completado" (29 logros = 26 + 3 nuevos)
+  - Click Normal → InteractiveTutorial auto-abre con "¡Bienvenido a la planta!" + "Soy el supervisor..."
+  - Click Siguiente × 2 → avanza a step 3 "2. Arrastra el cable"
+  - Click Saltar → tutorial se cierra, marca como visto, juego funcional
+  - Sin errores de React en consola
+  - Fix: Taco icon no existe en lucide-react → usé Cookie icon en su lugar
+- Lint: `bun run lint` → exit code 0 (limpio).
+- Capturas de pantalla en `/home/z/my-project/download/`:
+  - `interactive-tutorial.png` — tutorial step 1 "¡Bienvenido a la planta!"
+
+Stage Summary:
+- **3 nuevos eventos especiales completos**: Día del Taco (taco x ticket 45s), Cortocircuito (timer congelado 10s), Visita del CEO (score x3 60s)
+- **SpecialEventsIndicator ampliado**: 5 tipos de badges con colores e iconos diferenciados
+- **3 nuevos banners visuales**: TacoDayBanner, ShortCircuitBanner (overlay full-screen), CEOVisitBanner
+- **Interactive Tutorial completo**: 10 pasos guiados, auto-abre en primer play, posiciones dinámicas, progress dots
+- **29 logros totales** (26 + 3 nuevos de special events)
+- **QA exitoso**: tutorial auto-abre, navegación funciona, 29 logros registrados, sin errores
+
+Current project status description/assessment:
+- **Estado del juego:** Completo y jugable end-to-end con 5 tipos de eventos especiales, tutorial interactivo, 29 logros, ranking online, daily challenge, stats dashboard, keyboard shortcuts, easter eggs.
+- **Características implementadas (acumuladas):**
+  - 4 estaciones totalmente funcionales: Corte + Splices + Prensas + Harness
+  - Almacén funcional con delivery + power-ups
+  - 2 mini-juegos modales: Mantenimiento + Quick Audit
+  - 9 variantes de tickets con badges visuales
+  - **29 logros** con notificaciones + panel modal + persistencia (cola de 3 simultáneas)
+  - **Daily Challenge**: ticket diario con stories, bonus x2-x3, racha de días
+  - **Stats Dashboard**: 3 gráficas recharts + KPIs + stats acumuladas
+  - **5 Special Events**: Cliente Visitante (score x2 60s) + Supervisor Rampage (angry cada 20s por 45s) + Día del Taco (taco x ticket 45s) + Cortocircuito (timer congelado 10s) + Visita del CEO (score x3 60s)
+  - **Interactive Tutorial**: 10 pasos guiados, auto-abre en primer play
+  - **Keyboard Shortcuts**: 1-4 estaciones, P pausa, Esc back
+  - Konami code: TURBO MODE x3 score
+  - Modo Debug: 5 clics en título (easter egg)
+  - Eventos aleatorios con frases expandidas (Gringo 16, Supervisor 11+9+5 rampage, Chisme 15, Cliente 8, Taco Day 4, Short Circuit 4, CEO 4)
+  - Sistema de combos x3 → Modo Rápido
+  - Power-ups: Café + Taco
+  - Settings modal funcional (volumen, música, tema, reduce motion)
+  - Ranking Online con Prisma SQLite + API routes (GET/POST scores + sessions) + LeaderboardModal
+  - Performance Tier (6 niveles: NOVATO→LEYENDA)
+  - Share Modal: Twitter + WhatsApp + Copy
+  - Modo Caótico balanceado
+  - Pantallas: Title (con partículas + easter eggs + botones Ranking/Logros/Stats/Daily), How To Play, Game (responsive), Paused, Game Over (con tier + leaderboard + share)
+  - Persistencia localStorage + Prisma SQLite
+  - 15+ SFX sintetizados con Web Audio API
+  - Música de fondo con bass + melody pentatonic + pad + hi-hat
+  - ScoreBoard con delta flotante animado
+
+Current goals/completed modifications/verification results:
+- ✅ Meta 1: 3 nuevos eventos especiales (Día del Taco, Cortocircuito, Visita del CEO)
+- ✅ Meta 2: SpecialEventsIndicator ampliado a 5 tipos con badges diferenciados
+- ✅ Meta 3: 3 nuevos banners visuales en CharacterLayer
+- ✅ Meta 4: 3 logros nuevos (taco-feast, ceo-impressed, electrician) — total 29
+- ✅ Meta 5: Interactive Tutorial (10 pasos, auto-open, posiciones dinámicas)
+- ✅ Meta 6: Verificación con agent-browser exitosa (tutorial auto-abre, 29 logros)
+- ✅ Meta 7: `bun run lint` pasa sin errores
+
+Unresolved issues or risks, and priority recommendations for the next phase:
+1. **Cliente visitante visible para variant client-visit** — aún solo aparece cuando el evento client-visit está activo, no cuando el ticket tiene variant client-visit
+2. **Internacionalización** — aún solo español; next-intl para multi-idioma
+3. **Más variaciones de música** — música cambia según evento activo (ej. música intensa durante rampage, música alegre durante taco day)
+4. **Tutorial con highlight visual** — actualmente el tutorial es solo texto; podría resaltar elementos del UI con spotlight
+5. **Recomendación para próxima fase:** Cliente visitante visible para variant client-visit + música dinámica según evento + i18n.
+
+Artifacts produced (nuevos en esta sesión):
+- `src/components/game/screens/InteractiveTutorial.tsx` (~200 líneas, 10 pasos)
+- Modificados:
+  - `src/game/types.ts` (3 nuevos EventKind)
+  - `src/game/constants.ts` (3 nuevos conjuntos de frases + EVENT_DURATION_SEC)
+  - `src/game/store/eventStore.ts` (3 nuevos spawn actions + 6 nuevos campos + clearExpired + reset)
+  - `src/game/store/achievementStore.ts` (3 logros nuevos + 3 campos en stats + initial + partialize)
+  - `src/game/store/gameStore.ts` (CEO visit x3 + taco day grantTaco + achievement check con nuevos campos)
+  - `src/game/dragResolver.ts` (achievement check con nuevos campos)
+  - `src/hooks/use-game-loop.ts` (5 tipos de special events spawner + short circuit timer freeze)
+  - `src/components/game/characters/SpecialEventsIndicator.tsx` (refactorizado a 5 tipos con SpecialBadge reutilizable)
+  - `src/components/game/characters/CharacterLayer.tsx` (3 nuevos banners: TacoDay, ShortCircuit, CEOVisit)
+  - `src/components/game/GameApp.tsx` (monta InteractiveTutorial)
+- Screenshots: 1 nueva en `/home/z/my-project/download/`
+
+Next agent should:
+1. Leer este worklog y los docs en `/home/z/my-project/docs/` para contexto.
+2. Hacer cliente visitante visible cuando el ticket tiene variant client-visit (no solo cuando el evento está activo).
+3. Implementar música dinámica según evento activo (intensa en rampage, alegre en taco day).
+4. Agregar highlight visual (spotlight) al tutorial para señalar elementos del UI.
+5. Considerar next-intl para multi-idioma (español + inglés).
+6. Verificar siempre con agent-browser después de implementar.
+7. Mantener `bun run lint` limpio.
+8. Anexar nuevo Task ID al final de este worklog.

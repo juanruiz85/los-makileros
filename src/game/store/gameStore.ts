@@ -311,6 +311,9 @@ export const useGameStore = create<GameStoreState>()(
           dailyCompletedTotal: dailyStore.totalCompleted,
           clientVisits: achStore.clientVisits,
           supervisorRampages: achStore.supervisorRampages,
+          tacoDays: achStore.tacoDays,
+          ceoVisits: achStore.ceoVisits,
+          shortCircuits: achStore.shortCircuits,
         })
       },
 
@@ -344,9 +347,17 @@ export const useGameStore = create<GameStoreState>()(
         if (eventStore.clientVisitActive) {
           ticketScore = Math.floor(ticketScore * 2)
         }
+        // Special event: CEO visit triples all tickets
+        if (eventStore.ceoVisitActive) {
+          ticketScore = Math.floor(ticketScore * 3)
+        }
         const newScore = s.score + ticketScore
         // Grant taco power-up for taco-day variant
         if (s.currentTicket.variant === 'taco-day') {
+          useInventoryStore.getState().grantTaco?.()
+        }
+        // Special event: taco day grants taco on every ticket
+        if (eventStore.tacoDayActive) {
           useInventoryStore.getState().grantTaco?.()
         }
         set({
@@ -400,6 +411,9 @@ export const useGameStore = create<GameStoreState>()(
           dailyCompletedTotal: dailyStore.totalCompleted,
           clientVisits: achStore.clientVisits,
           supervisorRampages: achStore.supervisorRampages,
+          tacoDays: achStore.tacoDays,
+          ceoVisits: achStore.ceoVisits,
+          shortCircuits: achStore.shortCircuits,
         })
         get().loadNextTicket()
       },

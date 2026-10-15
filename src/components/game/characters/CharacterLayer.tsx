@@ -27,6 +27,12 @@ export function CharacterLayer() {
               return <ClientVisitBubble key={ev.id} phrase={ev.payload?.phrase as string} />
             case 'supervisor-rampage':
               return <SupervisorRampageBanner key={ev.id} phrase={ev.payload?.phrase as string} />
+            case 'taco-day-event':
+              return <TacoDayBanner key={ev.id} phrase={ev.payload?.phrase as string} />
+            case 'short-circuit':
+              return <ShortCircuitBanner key={ev.id} phrase={ev.payload?.phrase as string} />
+            case 'ceo-visit':
+              return <CEOVisitBanner key={ev.id} phrase={ev.payload?.phrase as string} />
             default:
               return null
           }
@@ -173,6 +179,102 @@ function SupervisorRampageBanner({ phrase }: { phrase?: string }) {
             ¡Día del supervisor enojado!
           </div>
           <div className="font-black text-base">{phrase ?? '¡HOY NO ES DÍA!'}</div>
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
+
+function TacoDayBanner({ phrase }: { phrase?: string }) {
+  return (
+    <motion.div
+      initial={{ y: -100, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      exit={{ y: -100, opacity: 0 }}
+      transition={{ type: 'spring', stiffness: 200 }}
+      className="absolute top-16 left-1/2 -translate-x-1/2 z-30 pointer-events-none"
+    >
+      <motion.div
+        animate={{ boxShadow: ['0 0 0 0 rgba(249,115,22,0.5)', '0 0 0 12px rgba(249,115,22,0)'] }}
+        transition={{ duration: 1, repeat: Infinity }}
+        className="bg-orange-500 text-white px-6 py-3 rounded-xl border-4 border-orange-300 shadow-2xl flex items-center gap-3"
+      >
+        <motion.div
+          animate={{ rotate: [-10, 10, -10] }}
+          transition={{ duration: 0.5, repeat: Infinity }}
+          className="text-3xl"
+        >
+          🌮
+        </motion.div>
+        <div>
+          <div className="text-[9px] font-mono uppercase tracking-widest text-orange-100">
+            ¡Día del Taco!
+          </div>
+          <div className="font-black text-base">{phrase ?? '¡Tacos gratis para todos!'}</div>
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
+
+function ShortCircuitBanner({ phrase }: { phrase?: string }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+      className="absolute inset-0 bg-yellow-400/20 pointer-events-none flex items-center justify-center"
+    >
+      <motion.div
+        animate={{
+          x: [0, -8, 8, -6, 6, 0],
+        }}
+        transition={{ duration: 0.2, repeat: Infinity }}
+        className="flex flex-col items-center"
+      >
+        <motion.div
+          animate={{ scale: [1, 1.3, 1] }}
+          transition={{ duration: 0.3, repeat: Infinity }}
+          className="text-7xl mb-2"
+        >
+          ⚡
+        </motion.div>
+        <div className="px-6 py-3 bg-yellow-400 text-stone-900 rounded-lg border-4 border-yellow-600 font-black text-xl shadow-2xl text-center">
+          ¡CORTOCIRCUITO!
+          <div className="text-xs font-mono mt-1">{phrase ?? 'Las máquinas se reinician'}</div>
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
+
+function CEOVisitBanner({ phrase }: { phrase?: string }) {
+  return (
+    <motion.div
+      initial={{ y: -100, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      exit={{ y: -100, opacity: 0 }}
+      transition={{ type: 'spring', stiffness: 200 }}
+      className="absolute top-16 left-1/2 -translate-x-1/2 z-30 pointer-events-none"
+    >
+      <motion.div
+        animate={{ boxShadow: ['0 0 0 0 rgba(245,158,11,0.6)', '0 0 0 16px rgba(245,158,11,0)'] }}
+        transition={{ duration: 0.8, repeat: Infinity }}
+        className="bg-gradient-to-r from-amber-500 to-yellow-400 text-stone-900 px-6 py-3 rounded-xl border-4 border-amber-700 shadow-2xl flex items-center gap-3"
+      >
+        <motion.div
+          animate={{ rotate: [0, -8, 8, 0] }}
+          transition={{ duration: 1, repeat: Infinity }}
+          className="text-3xl"
+        >
+          👔
+        </motion.div>
+        <div>
+          <div className="text-[9px] font-mono uppercase tracking-widest text-amber-900">
+            ¡Visita del CEO!
+          </div>
+          <div className="font-black text-base">{phrase ?? 'Score x3 en todos los tickets'}</div>
         </div>
       </motion.div>
     </motion.div>

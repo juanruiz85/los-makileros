@@ -82,7 +82,7 @@ export function useGameLoop() {
           }
         }
 
-        // Special events: client visit & supervisor rampage (cada 30s check)
+        // Special events: client visit, supervisor rampage, taco day, short circuit, CEO visit (cada 30s check)
         specialEventAccum += delta
         if (specialEventAccum >= 30) {
           specialEventAccum = 0
@@ -90,17 +90,44 @@ export function useGameLoop() {
           const eventStore = useEventStore.getState()
           // Only after 60s elapsed and not in free mode
           if (elapsed > 60 && mode !== 'free') {
-            // Client visit: 12% chance, not if already active
-            if (!eventStore.clientVisitActive && Math.random() < 0.12) {
+            const roll = Math.random()
+            // Client visit: 10% chance
+            if (!eventStore.clientVisitActive && roll < 0.10) {
               eventStore.spawnClientVisit()
               audio.play('combo-chime')
             }
-            // Supervisor rampage: 8% chance in normal, 18% in chaos, not if already active
-            else if (!eventStore.supervisorRampageActive) {
-              const rampageProb = mode === 'chaos' ? 0.18 : 0.08
+            // Supervisor rampage: 8% normal, 16% chaos
+            else if (!eventStore.supervisorRampageActive && roll < 0.18) {
+              const rampageProb = mode === 'chaos' ? 0.16 : 0.08
               if (Math.random() < rampageProb) {
                 eventStore.spawnSupervisorRampage()
                 audio.play('supervisor-angry')
+              }
+            }
+            // Taco day: 6% chance (rare but fun)
+            else if (!eventStore.tacoDayActive && roll < 0.24) {
+              if (Math.random() < 0.06) {
+                eventStore.spawnTacoDay()
+                audio.play('taco-bite')
+              }
+            }
+            // Short circuit: 5% chance (rare negative)
+            else if (!eventStore.shortCircuitActive && roll < 0.29) {
+              if (Math.random() < 0.05) {
+                eventStore.spawnShortCircuit()
+                audio.play('buzz-fail')
+                // Freeze timer during short circuit
+                useGameStore.getState().setTimerFrozen(true)
+                setTimeout(() => {
+                  useGameStore.getState().setTimerFrozen(false)
+                }, 10000)
+              }
+            }
+            // CEO visit: 3% chance (very rare, very rewarding)
+            else if (!eventStore.ceoVisitActive && roll < 0.32) {
+              if (Math.random() < 0.03) {
+                eventStore.spawnCEOVisit()
+                audio.play('combo-chime')
               }
             }
           }

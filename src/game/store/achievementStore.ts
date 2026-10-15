@@ -45,6 +45,9 @@ export interface AchievementCheckStats {
   dailyCompletedTotal: number
   clientVisits: number
   supervisorRampages: number
+  tacoDays: number
+  ceoVisits: number
+  shortCircuits: number
 }
 
 export const ACHIEVEMENT_DEFS: AchievementDef[] = [
@@ -240,6 +243,27 @@ export const ACHIEVEMENT_DEFS: AchievementDef[] = [
     emoji: '😤',
     check: (s) => s.supervisorRampages >= 3,
   },
+  {
+    id: 'taco-feast',
+    label: 'Fiesta del taco',
+    description: 'Experimenta un día del taco',
+    emoji: '🌮',
+    check: (s) => s.tacoDays >= 1,
+  },
+  {
+    id: 'ceo-impressed',
+    label: 'CEO impresionado',
+    description: 'Completa un ticket durante la visita del CEO',
+    emoji: '👔',
+    check: (s) => s.ceoVisits >= 1,
+  },
+  {
+    id: 'electrician',
+    label: 'Electricista',
+    description: 'Sobrevive a 3 cortocircuitos (acumulativo)',
+    emoji: '⚡',
+    check: (s) => s.shortCircuits >= 3,
+  },
 ]
 
 interface AchievementStoreState {
@@ -255,12 +279,15 @@ interface AchievementStoreState {
   harnessTestsPassed: number
   clientVisits: number
   supervisorRampages: number
+  tacoDays: number
+  ceoVisits: number
+  shortCircuits: number
   // Live tracking for current run
   consecutiveErrors: number
   perfectTickets: number
   // Actions
   checkAchievements: (stats: AchievementCheckStats) => string[]
-  addCumulativeStats: (delta: Partial<Pick<AchievementStoreState, 'totalTicketsAllTime' | 'totalScoreAcrossRuns' | 'totalGringosAllTime' | 'coffeeConsumed' | 'tacosConsumed' | 'splicesCompleted' | 'pressesCompleted' | 'harnessTestsPassed' | 'clientVisits' | 'supervisorRampages'>>) => void
+  addCumulativeStats: (delta: Partial<Pick<AchievementStoreState, 'totalTicketsAllTime' | 'totalScoreAcrossRuns' | 'totalGringosAllTime' | 'coffeeConsumed' | 'tacosConsumed' | 'splicesCompleted' | 'pressesCompleted' | 'harnessTestsPassed' | 'clientVisits' | 'supervisorRampages' | 'tacoDays' | 'ceoVisits' | 'shortCircuits'>>) => void
   reset: () => void
 }
 
@@ -278,6 +305,9 @@ export const useAchievementStore = create<AchievementStoreState>()(
       harnessTestsPassed: 0,
       clientVisits: 0,
       supervisorRampages: 0,
+      tacoDays: 0,
+      ceoVisits: 0,
+      shortCircuits: 0,
       consecutiveErrors: 0,
       perfectTickets: 0,
 
@@ -329,6 +359,9 @@ export const useAchievementStore = create<AchievementStoreState>()(
         harnessTestsPassed: s.harnessTestsPassed,
         clientVisits: s.clientVisits,
         supervisorRampages: s.supervisorRampages,
+        tacoDays: s.tacoDays,
+        ceoVisits: s.ceoVisits,
+        shortCircuits: s.shortCircuits,
       }),
     }
   )

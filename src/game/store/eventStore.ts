@@ -13,6 +13,9 @@ import {
   SUPERVISOR_WARN_PHRASES,
   CLIENT_VISIT_PHRASES,
   SUPERVISOR_RAMPAGE_PHRASES,
+  TACO_DAY_EVENT_PHRASES,
+  SHORT_CIRCUIT_PHRASES,
+  CEO_VISIT_PHRASES,
 } from '../constants'
 import { useAchievementStore } from './achievementStore'
 
@@ -29,6 +32,12 @@ interface EventStoreState {
   supervisorRampageUntil: number
   clientVisitActive: boolean
   clientVisitUntil: number
+  tacoDayActive: boolean
+  tacoDayUntil: number
+  ceoVisitActive: boolean
+  ceoVisitUntil: number
+  shortCircuitActive: boolean
+  shortCircuitUntil: number
   // frases activas para mostrar subtítulos
   currentSubtitle: { text: string; color?: string; until: number } | null
   // Acciones
@@ -42,6 +51,9 @@ interface EventStoreState {
   spawnQualityAudit: () => void
   spawnClientVisit: () => void
   spawnSupervisorRampage: () => void
+  spawnTacoDay: () => void
+  spawnShortCircuit: () => void
+  spawnCEOVisit: () => void
   setSubtitle: (text: string, color: string, durationMs: number) => void
   clearExpiredSubtitles: (now: number) => void
   clearExpiredSpecialEvents: (now: number) => void
@@ -57,6 +69,12 @@ export const useEventStore = create<EventStoreState>((set, get) => ({
   supervisorRampageUntil: 0,
   clientVisitActive: false,
   clientVisitUntil: 0,
+  tacoDayActive: false,
+  tacoDayUntil: 0,
+  ceoVisitActive: false,
+  ceoVisitUntil: 0,
+  shortCircuitActive: false,
+  shortCircuitUntil: 0,
   currentSubtitle: null,
 
   spawnEvent: (kind, payload) =>
@@ -147,6 +165,48 @@ export const useEventStore = create<EventStoreState>((set, get) => ({
     achStore.addCumulativeStats({ supervisorRampages: 1 })
   },
 
+  spawnTacoDay: () => {
+    const now = performance.now()
+    const phrase = TACO_DAY_EVENT_PHRASES[Math.floor(Math.random() * TACO_DAY_EVENT_PHRASES.length)]
+    // Taco day lasts 45s: every ticket completed grants a taco
+    set({
+      tacoDayActive: true,
+      tacoDayUntil: now + 45000,
+    })
+    get().spawnEvent('taco-day-event', { phrase })
+    get().setSubtitle(`🌮 ${phrase}`, 'text-orange-500', 6000)
+    const achStore = useAchievementStore.getState()
+    achStore.addCumulativeStats({ tacoDays: 1 })
+  },
+
+  spawnShortCircuit: () => {
+    const now = performance.now()
+    const phrase = SHORT_CIRCUIT_PHRASES[Math.floor(Math.random() * SHORT_CIRCUIT_PHRASES.length)]
+    // Short circuit lasts 10s: timer frozen + all stations locked
+    set({
+      shortCircuitActive: true,
+      shortCircuitUntil: now + 10000,
+    })
+    get().spawnEvent('short-circuit', { phrase })
+    get().setSubtitle(`⚡ ${phrase}`, 'text-yellow-500', 6000)
+    const achStore = useAchievementStore.getState()
+    achStore.addCumulativeStats({ shortCircuits: 1 })
+  },
+
+  spawnCEOVisit: () => {
+    const now = performance.now()
+    const phrase = CEO_VISIT_PHRASES[Math.floor(Math.random() * CEO_VISIT_PHRASES.length)]
+    // CEO visit lasts 60s: score x3 but errors cost x2 time
+    set({
+      ceoVisitActive: true,
+      ceoVisitUntil: now + 60000,
+    })
+    get().spawnEvent('ceo-visit', { phrase })
+    get().setSubtitle(`👔 ${phrase}`, 'text-amber-500', 6000)
+    const achStore = useAchievementStore.getState()
+    achStore.addCumulativeStats({ ceoVisits: 1 })
+  },
+
   setSubtitle: (text, color, durationMs) =>
     set({ currentSubtitle: { text, color, until: performance.now() + durationMs } }),
 
@@ -167,6 +227,15 @@ export const useEventStore = create<EventStoreState>((set, get) => ({
       if (s.clientVisitActive && now > s.clientVisitUntil) {
         updates.clientVisitActive = false
       }
+      if (s.tacoDayActive && now > s.tacoDayUntil) {
+        updates.tacoDayActive = false
+      }
+      if (s.ceoVisitActive && now > s.ceoVisitUntil) {
+        updates.ceoVisitActive = false
+      }
+      if (s.shortCircuitActive && now > s.shortCircuitUntil) {
+        updates.shortCircuitActive = false
+      }
       return updates
     }),
 
@@ -180,6 +249,12 @@ export const useEventStore = create<EventStoreState>((set, get) => ({
       supervisorRampageUntil: 0,
       clientVisitActive: false,
       clientVisitUntil: 0,
+      tacoDayActive: false,
+      tacoDayUntil: 0,
+      ceoVisitActive: false,
+      ceoVisitUntil: 0,
+      shortCircuitActive: false,
+      shortCircuitUntil: 0,
       currentSubtitle: null,
     }),
 }))
