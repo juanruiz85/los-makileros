@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { useGameStore } from '@/game/store/gameStore'
 import { useInventoryStore } from '@/game/store/inventoryStore'
@@ -10,8 +10,9 @@ import { audio } from '@/lib/audio'
 import { T } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Skull, Trophy, RefreshCw, Home, Send, Clock } from 'lucide-react'
+import { Skull, Trophy, RefreshCw, Home, Send, Clock, Share2 } from 'lucide-react'
 import { LeaderboardModal } from '@/components/game/layout/LeaderboardModal'
+import { ShareModal } from '@/components/game/layout/ShareModal'
 
 export function GameOverScreen() {
   const reason = useGameStore((s) => s.gameOverReason)
@@ -25,6 +26,11 @@ export function GameOverScreen() {
   const isNewHigh = score >= highscore && score > 0
 
   const [leaderboardOpen, setLeaderboardOpen] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
+  const [tierInfo, setTierInfo] = useState<{ label: string; emoji: string }>({ label: 'OPERADOR', emoji: '🔧' })
+  const handleTierChange = useCallback((info: { label: string; emoji: string }) => {
+    setTierInfo(info)
+  }, [])
   const [pendingSubmit, setPendingSubmit] = useState<{
     score: number
     tickets: number
@@ -151,7 +157,7 @@ export function GameOverScreen() {
           </p>
 
           {/* Performance tier message */}
-          <PerformanceTier score={score} tickets={runStats.ticketsCompleted} />
+          <PerformanceTier score={score} tickets={runStats.ticketsCompleted} onTier={handleTierChange} />
 
           {/* Score final */}
           <div className="bg-stone-900/80 rounded-lg p-4 border border-stone-700 mb-4">
@@ -189,24 +195,34 @@ export function GameOverScreen() {
 
           {/* Submit to leaderboard button */}
           {score > 0 && (
-            <Button
-              onClick={() => {
-                setPendingSubmit({
-                  score,
-                  tickets: runStats.ticketsCompleted,
-                  maxCombo: runStats.maxCombo,
-                  mode,
-                  durationSec: Math.floor(runStats.timePlayedSec),
-                  gringoEncounters: runStats.gringoEncounters,
-                })
-                setLeaderboardOpen(true)
-              }}
-              variant="outline"
-              className="w-full mb-2 border-amber-500 text-amber-400 hover:bg-amber-500 hover:text-stone-900"
-            >
-              <Send className="w-4 h-4 mr-2" />
-              Enviar al Ranking Online
-            </Button>
+            <div className="flex gap-2 mb-2">
+              <Button
+                onClick={() => {
+                  setPendingSubmit({
+                    score,
+                    tickets: runStats.ticketsCompleted,
+                    maxCombo: runStats.maxCombo,
+                    mode,
+                    durationSec: Math.floor(runStats.timePlayedSec),
+                    gringoEncounters: runStats.gringoEncounters,
+                  })
+                  setLeaderboardOpen(true)
+                }}
+                variant="outline"
+                className="flex-1 border-amber-500 text-amber-400 hover:bg-amber-500 hover:text-stone-900"
+              >
+                <Send className="w-4 h-4 mr-2" />
+                Ranking
+              </Button>
+              <Button
+                onClick={() => setShareOpen(true)}
+                variant="outline"
+                className="flex-1 border-purple-500 text-purple-400 hover:bg-purple-500 hover:text-white"
+              >
+                <Share2 className="w-4 h-4 mr-2" />
+                Compartir
+              </Button>
+            </div>
           )}
 
           {/* Botones */}
@@ -236,6 +252,18 @@ export function GameOverScreen() {
         onOpenChange={setLeaderboardOpen}
         pendingSubmit={pendingSubmit}
       />
+
+      {/* Share Modal */}
+      <ShareModal
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        score={score}
+        tickets={runStats.ticketsCompleted}
+        maxCombo={runStats.maxCombo}
+        mode={mode}
+        tierLabel={tierInfo.label}
+        tierEmoji={tierInfo.emoji}
+      />
     </div>
   )
 }
@@ -251,7 +279,7 @@ function StatBox({ label, value }: { label: string; value: string | number }) {
   )
 }
 
-function PerformanceTier({ score, tickets }: { score: number; tickets: number }) {
+function PerformanceTier({ score, tickets, onTier }: { score: number; tickets: number; onTier?: (info: { label: string; emoji: string }) => void }) {
   let tier: { label: string; emoji: string; color: string; message: string }
   if (score === 0) {
     tier = {
@@ -296,6 +324,10 @@ function PerformanceTier({ score, tickets }: { score: number; tickets: number })
       message: '¡El Jefe te quiere de supervisor! ¿Aceptas?',
     }
   }
+
+  useEffect(() => {
+    onTier?.({ label: tier.label, emoji: tier.emoji })
+  }, [tier.label, tier.emoji, onTier])
 
   return (
     <motion.div

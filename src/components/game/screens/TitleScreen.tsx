@@ -23,9 +23,12 @@ import {
   FlaskConical,
   Boxes,
   Trophy,
+  Award,
 } from 'lucide-react'
 import type { GameMode } from '@/game/types'
 import { LeaderboardModal } from '@/components/game/layout/LeaderboardModal'
+import { AchievementPanel } from '@/components/game/characters/AchievementPanel'
+import { useAchievementStore } from '@/game/store/achievementStore'
 
 const FLOATING_TOOLS = [
   { Icon: Scissors, x: '8%', y: '20%', delay: 0, duration: 7, color: 'text-amber-500/40' },
@@ -49,9 +52,11 @@ export function TitleScreen() {
   const hasRun = useGameStore((s) => !!s.currentTicket)
 
   const [leaderboardOpen, setLeaderboardOpen] = useState(false)
+  const [achievementsOpen, setAchievementsOpen] = useState(false)
   const [clickCount, setClickCount] = useState(0)
   const [debugMode, setDebugMode] = useState(false)
   const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const totalUnlocked = useAchievementStore((s) => Object.keys(s.unlocked).length)
 
   const handleTitleClick = () => {
     const newCount = clickCount + 1
@@ -194,7 +199,7 @@ export function TitleScreen() {
               <ModeButton
                 label={T.title.chaos}
                 icon={<Zap className="w-5 h-5" />}
-                description="Gringo cada 45s, +50% eventos"
+                description="Gringo cada 60s, +20% velocidad"
                 color="red"
                 onClick={() => handleStart('chaos')}
                 active={persistedMode === 'chaos' && screen === 'title'}
@@ -234,6 +239,19 @@ export function TitleScreen() {
               >
                 <Trophy className="w-4 h-4 mr-2" />
                 Ranking
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-1 border-purple-400 dark:border-purple-500 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-950 relative"
+                onClick={() => setAchievementsOpen(true)}
+              >
+                <Award className="w-4 h-4 mr-2" />
+                Logros
+                {totalUnlocked > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-purple-500 text-white text-[9px] font-mono font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                    {totalUnlocked}
+                  </span>
+                )}
               </Button>
             </div>
 
@@ -280,6 +298,9 @@ export function TitleScreen() {
 
       {/* Leaderboard Modal */}
       <LeaderboardModal open={leaderboardOpen} onOpenChange={setLeaderboardOpen} />
+
+      {/* Achievements Modal */}
+      <AchievementPanel open={achievementsOpen} onOpenChange={setAchievementsOpen} />
     </div>
   )
 }

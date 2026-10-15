@@ -60,7 +60,13 @@ export function TicketPanel() {
                             ? 'bg-stone-500 text-white'
                             : ticket.variant === 'long-roll'
                               ? 'bg-cyan-500 text-white'
-                              : 'bg-stone-500 text-white'
+                              : ticket.variant === 'taco-day'
+                                ? 'bg-orange-500 text-white animate-pulse'
+                                : ticket.variant === 'client-visit'
+                                  ? 'bg-emerald-600 text-white'
+                                  : ticket.variant === 'heavy-day'
+                                    ? 'bg-amber-700 text-white'
+                                    : 'bg-stone-500 text-white'
                   }`}
                 >
                   {ticket.variantLabel}

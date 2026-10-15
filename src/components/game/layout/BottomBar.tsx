@@ -22,8 +22,11 @@ import {
   Moon,
   Accessibility,
   Zap,
+  Award,
 } from 'lucide-react'
 import { WarehouseSheet } from './WarehouseSheet'
+import { AchievementPanel } from '@/components/game/characters/AchievementPanel'
+import { useAchievementStore } from '@/game/store/achievementStore'
 import { useTheme } from 'next-themes'
 
 interface LocalSettings {
@@ -64,6 +67,8 @@ export function BottomBar() {
   const score = useGameStore((s) => s.score)
   const [warehouseOpen, setWarehouseOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [achievementsOpen, setAchievementsOpen] = useState(false)
+  const totalUnlocked = useAchievementStore((s) => Object.keys(s.unlocked).length)
   const cables = useInventoryStore((s) => s.cables.length)
   const coffeePending = useInventoryStore((s) => s.coffeePending)
   const tacoPending = useInventoryStore((s) => s.tacoPending)
@@ -192,8 +197,27 @@ export function BottomBar() {
         <Settings className="w-4 h-4" />
       </Button>
 
+      {/* Achievements */}
+      <Button
+        variant="outline"
+        size="icon"
+        className="bg-stone-800 border-stone-600 text-stone-100 hover:bg-stone-700 relative"
+        onClick={() => setAchievementsOpen(true)}
+        title={`Logros (${totalUnlocked})`}
+      >
+        <Award className="w-4 h-4" />
+        {totalUnlocked > 0 && (
+          <span className="absolute -top-1 -right-1 bg-amber-500 text-stone-900 text-[9px] font-mono font-bold rounded-full w-4 h-4 flex items-center justify-center">
+            {totalUnlocked}
+          </span>
+        )}
+      </Button>
+
       {/* Warehouse Sheet */}
       <WarehouseSheet open={warehouseOpen} onOpenChange={setWarehouseOpen} />
+
+      {/* Achievements Modal */}
+      <AchievementPanel open={achievementsOpen} onOpenChange={setAchievementsOpen} />
 
       {/* Settings Modal */}
       <AnimatePresence>

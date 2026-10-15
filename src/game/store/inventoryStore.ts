@@ -30,6 +30,8 @@ interface InventoryStoreState {
   consumeTube: (id: string) => void
   consumeCoffee: () => void
   consumeTaco: () => void
+  grantTaco: () => void
+  grantCoffee: () => void
   moveToWip: (item: WipItem) => void
   removeFromWip: (id: string) => void
   clearWip: () => void
@@ -94,6 +96,8 @@ export const useInventoryStore = create<InventoryStoreState>((set, get) => ({
 
   consumeCoffee: () => set({ coffeePending: false }),
   consumeTaco: () => set({ tacoPending: false }),
+  grantTaco: () => set({ tacoPending: true }),
+  grantCoffee: () => set({ coffeePending: true }),
 
   moveToWip: (item) =>
     set((s) => {

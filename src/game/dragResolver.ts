@@ -10,6 +10,7 @@ import { useGameStore } from './store/gameStore'
 import { useInventoryStore } from './store/inventoryStore'
 import { useStationStore } from './store/stationStore'
 import { useEventStore } from './store/eventStore'
+import { useAchievementStore } from './store/achievementStore'
 import { audio } from '@/lib/audio'
 import {
   SCORE,
@@ -400,6 +401,7 @@ function handleHarnessTest() {
 function handlePowerupConsume(payload: { type: 'coffee' | 'taco' }) {
   const game = useGameStore.getState()
   const inv = useInventoryStore.getState()
+  const achStore = useAchievementStore.getState()
   if (payload.type === 'coffee') {
     if (!inv.coffeePending) return
     inv.consumeCoffee()
@@ -410,6 +412,26 @@ function handlePowerupConsume(payload: { type: 'coffee' | 'taco' }) {
       'text-yellow-500',
       3000
     )
+    achStore.addCumulativeStats({ coffeeConsumed: 1 })
+    achStore.checkAchievements({
+      score: game.score,
+      combo: game.combo,
+      maxCombo: game.maxCombo,
+      ticketsCompleted: game.runStats.ticketsCompleted,
+      gringoEncounters: game.runStats.gringoEncounters,
+      errors: game.runStats.errors,
+      timePlayedSec: game.runStats.timePlayedSec,
+      mode: game.mode,
+      perfectTickets: 0,
+      splicesCompleted: 0,
+      pressesCompleted: 0,
+      harnessTestsPassed: 0,
+      totalScoreAcrossRuns: achStore.totalScoreAcrossRuns,
+      totalTicketsAllTime: achStore.totalTicketsAllTime,
+      totalGringosAllTime: achStore.totalGringosAllTime,
+      coffeeConsumed: achStore.coffeeConsumed,
+      tacosConsumed: achStore.tacosConsumed,
+    })
     setTimeout(() => {
       useGameStore.getState().setTimerFrozen(false)
     }, 5000)
@@ -423,6 +445,7 @@ function handlePowerupConsume(payload: { type: 'coffee' | 'taco' }) {
       'text-orange-500',
       3000
     )
+    achStore.addCumulativeStats({ tacosConsumed: 1 })
   }
 }
 

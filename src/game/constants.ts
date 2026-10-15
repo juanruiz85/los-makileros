@@ -7,7 +7,7 @@ import type { CableColor, CableGauge, TerminalType, EventKind, GameMode } from '
 export const START_TIME_SEC = 120
 export const TICK_DELTA_SCALE = {
   normal: 1.0,
-  chaos: 1.4,
+  chaos: 1.2, // balanced: was 1.4 (too punishing), now 1.2
   free: 0.0, // free mode no decrementa
 } as const
 
@@ -82,7 +82,7 @@ export const EVENT_SPAWN_TABLE: Array<{
 // === Gringo ===
 export const GRINGO_INTERVAL_SEC = {
   normal: 90,
-  chaos: 45,
+  chaos: 60, // balanced: was 45 (too punishing), now 60
   free: Infinity,
 } as const
 export const GRINGO_3_ERRORS_TRIGGER = 3

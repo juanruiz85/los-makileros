@@ -22,6 +22,7 @@ import {
 } from '../constants'
 import { SeededRandom } from '@/lib/random'
 import { generateTicket } from '@/lib/tickets'
+import { useAchievementStore } from './achievementStore'
 
 interface GameStoreState {
   // Pantalla y modo
@@ -53,6 +54,8 @@ interface GameStoreState {
   gameOverReason: 'time' | 'gringo-3x' | null
   // Tiempo real ahora
   lastTickAt: number
+  // Turbo mode (Konami code)
+  turboMode: boolean
   // Acciones
   setScreen: (s: GameScreen) => void
   start: (mode: GameMode) => void
@@ -72,6 +75,7 @@ interface GameStoreState {
   grantGringoImmunity: () => void
   setSpeedMult: (m: number) => void
   setTimerFrozen: (b: boolean) => void
+  setTurboMode: (b: boolean) => void
   reportTicketCompleted: () => void
   loadNextTicket: () => void
   gameOver: (reason: 'time' | 'gringo-3x') => void
@@ -112,6 +116,7 @@ export const useGameStore = create<GameStoreState>()(
       highscore: 0,
       gameOverReason: null,
       lastTickAt: 0,
+      turboMode: false,
 
       setScreen: (s) => set({ screen: s }),
 
@@ -225,8 +230,9 @@ export const useGameStore = create<GameStoreState>()(
       addScore: (pts) => {
         const s = get()
         if (s.screen !== 'playing') return
-        const mult = s.comboModeActive ? COMBO_MULT_IN_FAST : 1
-        const total = pts * mult
+        const comboMult = s.comboModeActive ? COMBO_MULT_IN_FAST : 1
+        const turboMult = s.turboMode ? 3 : 1
+        const total = pts * comboMult * turboMult
         set({ score: Math.max(0, s.score + total) })
       },
 
@@ -277,6 +283,28 @@ export const useGameStore = create<GameStoreState>()(
           },
           consecutiveErrors: 0,
         })
+        // Cumulative gringo encounters for achievements
+        const achStore = useAchievementStore.getState()
+        achStore.addCumulativeStats({ totalGringosAllTime: 1 })
+        achStore.checkAchievements({
+          score: s.score,
+          combo: s.combo,
+          maxCombo: s.maxCombo,
+          ticketsCompleted: s.runStats.ticketsCompleted,
+          gringoEncounters: s.runStats.gringoEncounters + 1,
+          errors: s.runStats.errors,
+          timePlayedSec: s.runStats.timePlayedSec,
+          mode: s.mode,
+          perfectTickets: 0,
+          splicesCompleted: 0,
+          pressesCompleted: 0,
+          harnessTestsPassed: 0,
+          totalScoreAcrossRuns: achStore.totalScoreAcrossRuns,
+          totalTicketsAllTime: achStore.totalTicketsAllTime,
+          totalGringosAllTime: achStore.totalGringosAllTime + 1,
+          coffeeConsumed: achStore.coffeeConsumed,
+          tacosConsumed: achStore.tacosConsumed,
+        })
       },
 
       consumeGringoImmunity: () => {
@@ -291,6 +319,7 @@ export const useGameStore = create<GameStoreState>()(
 
       setSpeedMult: (m) => set({ speedMult: m }),
       setTimerFrozen: (b) => set({ timerFrozen: b }),
+      setTurboMode: (b) => set({ turboMode: b }),
 
       reportTicketCompleted: () => {
         const s = get()
@@ -298,13 +327,23 @@ export const useGameStore = create<GameStoreState>()(
         const bonus = s.currentTicket.timeBonusOnComplete
         const setupBonus = !s.setupChanged && s.lastSetupKey !== null ? SCORE.setupSaved : 0
         const timeAdd = bonus + (setupBonus ? TIME_BONUS.setupSaved : 0)
+        // Variant multipliers on ticket completion
+        let ticketScore = s.currentTicket.baseScore + setupBonus
+        if (s.currentTicket.variant === 'client-visit') {
+          ticketScore = Math.floor(ticketScore * 2)
+        }
+        const newScore = s.score + ticketScore
+        // Grant taco power-up for taco-day variant
+        if (s.currentTicket.variant === 'taco-day') {
+          useInventoryStore.getState().grantTaco?.()
+        }
         set({
-          score: s.score + s.currentTicket.baseScore + setupBonus,
+          score: newScore,
           timerSec: Math.min(999, s.timerSec + timeAdd),
           runStats: {
             ...s.runStats,
             ticketsCompleted: s.runStats.ticketsCompleted + 1,
-            totalScore: s.score + s.currentTicket.baseScore + setupBonus,
+            totalScore: newScore,
           },
           ticketHistory: [...s.ticketHistory, { ...s.currentTicket, status: 'completed' }],
           consecutiveErrors: 0,
@@ -312,6 +351,32 @@ export const useGameStore = create<GameStoreState>()(
             s.gringoImmunityTicketsLeft > 0
               ? s.gringoImmunityTicketsLeft - 1
               : 0,
+        })
+        // Update achievement store cumulative stats
+        const achStore = useAchievementStore.getState()
+        achStore.addCumulativeStats({
+          totalTicketsAllTime: 1,
+          totalScoreAcrossRuns: s.currentTicket.baseScore + setupBonus,
+        })
+        // Check achievements with current stats
+        achStore.checkAchievements({
+          score: newScore,
+          combo: s.combo,
+          maxCombo: s.maxCombo,
+          ticketsCompleted: s.runStats.ticketsCompleted + 1,
+          gringoEncounters: s.runStats.gringoEncounters,
+          errors: s.runStats.errors,
+          timePlayedSec: s.runStats.timePlayedSec,
+          mode: s.mode,
+          perfectTickets: s.runStats.errors === 0 ? s.runStats.ticketsCompleted + 1 : 0,
+          splicesCompleted: 0,
+          pressesCompleted: 0,
+          harnessTestsPassed: 0,
+          totalScoreAcrossRuns: achStore.totalScoreAcrossRuns,
+          totalTicketsAllTime: achStore.totalTicketsAllTime,
+          totalGringosAllTime: achStore.totalGringosAllTime,
+          coffeeConsumed: achStore.coffeeConsumed,
+          tacosConsumed: achStore.tacosConsumed,
         })
         get().loadNextTicket()
       },

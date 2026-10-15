@@ -674,3 +674,165 @@ Next agent should:
 6. Verificar siempre con agent-browser después de implementar.
 7. Mantener `bun run lint` limpio.
 8. Anexar nuevo Task ID al final de este worklog.
+
+---
+Task ID: 5-achievements-konami-tickets-share
+Agent: Z.ai Code (cron-triggered autonomous agent — 5ta iteración)
+Task: Implementar sistema de Achievements (19 logros), Konami code easter egg (TURBO MODE x3 score), 3 nuevas variantes de tickets (taco-day, client-visit, heavy-day), modal de compartir score, balancear modo Caótico. Verificar con agent-browser.
+
+Work Log:
+- Leí el worklog anterior (Task 4-f8-leaderboard-phrases-easter) que confirmó F8 (Ranking Online), frases expandidas, easter egg debug mode, performance tier completados.
+- Verifiqué dev server corriendo (logs exitosos, GET / 200).
+- QA inicial con agent-browser: title screen carga, modo Normal/Caótico/Libre funcionales, botones Ranking visibles.
+- **AchievementStore** creado en `src/game/store/achievementStore.ts` (~250 líneas):
+  - 19 logros definidos en ACHIEVEMENT_DEFS con categorías: primeros pasos (first-blood, combo-3, combo-10), operador (tickets-10, tickets-25, score-1000, score-5000), power-ups (coffee-first, taco-first, coffee-master), gringo (survived-gringo, gringo-survivor), estaciones (splice-master, press-pro, harness-hero), perfeccionista (perfect-3), acumulativos (total-tickets-50, total-score-10000), modo caótico (chaos-survivor)
+  - Cada achievement tiene id, label, description, emoji, check function
+  - Estado: unlocked (Record<id, timestamp>), stats acumulativas (totalTicketsAllTime, totalScoreAcrossRuns, totalGringosAllTime, coffeeConsumed, tacosConsumed, splicesCompleted, pressesCompleted, harnessTestsPassed)
+  - Persist con partialize para guardar unlocked + cumulative stats en localStorage (makileros:stats)
+  - Acciones: checkAchievements(stats) → retorna IDs recién desbloqueados, addCumulativeStats(delta), reset
+- **AchievementPanel + AchievementNotification** creados en `src/components/game/characters/AchievementPanel.tsx` (~220 líneas):
+  - Notification: banner fijo top-right con animación spring, ícono rotante, ✨ pulsante, auto-dismiss 4s
+  - Panel: modal con grid 2 cols de achievements, progress bar (X/19 completado), filtro visual (locked grayscale + 🔒, unlocked amber), staggered animations
+  - Hook useAchievementWatcher que detecta nuevos unlocks via seenRef
+- **Konami code hook** creado en `src/hooks/use-konami-code.ts`:
+  - Secuencia: ↑↑↓↓←→←→ b a (10 keys)
+  - Window de 2.5s entre keys
+  - onActivate callback
+  - Estado: activated (bool), progress (0..10)
+  - Reset automático en key incorrecta
+- **TurboModeIndicator** creado en `src/components/game/effects/TurboModeIndicator.tsx`:
+  - Banner rojo con yellow border + glow pulsante
+  - Rocket icon rotante 360° continuo
+  - "TURBO MODE - Konami unlocked · score x3"
+- **GameApp.tsx** actualizado: integra useKonamiCode, monta AchievementNotification + TurboModeIndicator, muestra progreso Konami (X/10) cuando progress > 0
+- **gameStore.ts** ampliado:
+  - Nuevo estado turboMode (bool)
+  - Nueva acción setTurboMode(b)
+  - addScore ahora multiplica por turboMult (3 si turbo activo) además del combo
+  - reportTicketCompleted ahora:
+    - Aplica variant 'client-visit' x2 al score del ticket
+    - Grant taco power-up para variant 'taco-day' (via useInventoryStore.grantTaco)
+    - Llama achStore.addCumulativeStats + checkAchievements después de cada ticket
+  - triggerGringo ahora actualiza totalGringosAllTime en achievement store
+- **inventoryStore.ts** ampliado: agregadas acciones grantTaco() y grantCoffee() para usar con variantes de tickets
+- **dragResolver.ts** ampliado: handlePowerupConsume ahora actualiza coffeeConsumed/tacosConsumed en achievement store + checkAchievements
+- **Nuevas variantes de tickets** en `src/lib/tickets.ts`:
+  - 9 variantes totales con probabilidades weighted: standard (42%), rush (11%), bulk (9%), splice-heavy (7%), no-terminal (9%), long-roll (9%), taco-day (4%), client-visit (5%), heavy-day (4%)
+  - TACO-DAY: 🌮 badge orange pulsante, score x1.2, timeBonus 15s, otorga taco power-up al completar
+  - CLIENT-VISIT: 👀 badge emerald, score x2 al completar (visitante VIP)
+  - HEAVY-DAY: 💪 badge amber-700, score x1.5, más circuitos (8-18)
+- **types.ts** actualizado: TicketVariant ahora incluye 9 variantes
+- **TicketPanel.tsx** actualizado: badges con colores diferenciados para las 9 variantes
+- **Balanceo modo Caótico**:
+  - TICK_DELTA_SCALE.chaos: 1.4 → 1.2 (-14% dificultad)
+  - GRINGO_INTERVAL_SEC.chaos: 45s → 60s (+15s de respiro)
+  - TitleScreen: descripción actualizada "Gringo cada 60s, +20% velocidad"
+- **ShareModal** creado en `src/components/game/layout/ShareModal.tsx` (~140 líneas):
+  - Modal con preview de texto compartible
+  - 3 botones: Twitter (window.open con intent/tweet), WhatsApp (wa.me), Copiar texto (clipboard API + fallback)
+  - Texto incluye emoji del tier, score, tickets, combo, modo
+  - Visual feedback: copied state con check icon
+- **GameOverScreen.tsx** actualizado:
+  - Botón "Compartir" al lado de "Ranking" (con icon Share2)
+  - PerformanceTier ahora llama onTier callback para actualizar tierInfo (label + emoji)
+  - ShareModal montado con props dinámicos basados en tier actual
+- **TitleScreen.tsx** actualizado:
+  - Nuevo botón "Logros" (purple, con icon Award) al lado de "Ranking"
+  - Badge con count de logros desbloqueados
+  - Modal AchievementPanel montado
+- **BottomBar.tsx** actualizado:
+  - Botón "Achievements" (icon Award) al lado de Ajustes
+  - Badge con count de logros desbloqueados
+- Verifiqué con agent-browser:
+  - Title screen: botón "Logros" visible, "Caótico" ahora dice "Gringo cada 60s, +20% velocidad"
+  - Click "Logros" → modal AchievementPanel abre con "Progreso 0/19 0% completado"
+  - Click "Normal" → entra al juego
+  - Cut white 18 cable → score 50, combo 1
+  - Click "Reportar Terminado" → achievement "first-blood" desbloqueado (timestamp 1792035163476)
+  - Storage makileros:stats: { unlocked: {first-blood:...}, totalTicketsAllTime: 1, totalScoreAcrossRuns: 175 }
+  - Konami code: simulé 10 keys con KeyboardEvent dispatch → "TURBO MODE - Konami unlocked · score x3" aparece
+  - Sin errores en consola, sin errores de React
+- Lint: `bun run lint` → exit code 0 (limpio).
+- Capturas de pantalla en `/home/z/my-project/download/`:
+  - `achievements-panel.png` — modal de achievements vacío (0/19)
+  - `achievement-notification.png` — notificación de logro desbloqueado
+  - `turbo-mode-active.png` — TURBO MODE activo vía Konami
+  - `konami-progress.png` — progreso de Konami code (X/10)
+
+Stage Summary:
+- **Sistema de Achievements completo**: 19 logros con 8 categorías diferentes, notificaciones animadas, panel modal, persistencia localStorage, integración con gameStore y dragResolver.
+- **Konami code easter egg**: ↑↑↓↓←→←→ b a activa TURBO MODE con score x3, indicator visual centrado con glow pulsante, progress hint mientras se completa.
+- **3 nuevas variantes de tickets**: TACO-DAY (otorga taco), CLIENT-VISIT (score x2), HEAVY-DAY (más circuitos + score x1.5).
+- **Modal de compartir**: Twitter, WhatsApp, Copy al portapapeles con texto formateado según tier.
+- **Modo Caótico balanceado**: 1.4→1.2 speed, 45→60s Gringo.
+- **QA exitoso**: logros se desbloquean correctamente, Konami activa turbo, no errores.
+
+Current project status description/assessment:
+- **Estado del juego:** Completo y jugable end-to-end con sistema de achievements, easter eggs, 9 variantes de tickets, ranking online, share modal, y modo balanceado.
+- **Características implementadas (acumuladas):**
+  - 4 estaciones totalmente funcionales: Corte + Splices + Prensas + Harness
+  - Almacén funcional con delivery + power-ups
+  - 2 mini-juegos modales: Mantenimiento + Quick Audit
+  - **9 variantes de tickets** con badges visuales: standard, rush, bulk, splice-heavy, no-terminal, long-roll, taco-day, client-visit, heavy-day
+  - **Sistema de Achievements**: 19 logros con notificaciones + panel modal + persistencia
+  - **Konami code**: TURBO MODE x3 score
+  - **Modo Debug**: 5 clics en título (easter egg anterior)
+  - Eventos aleatorios con frases expandidas (Gringo 16, Supervisor 11+9, Chisme 15)
+  - Sistema de combos x3 → Modo Rápido
+  - Power-ups: Café + Taco
+  - Settings modal funcional (volumen, música, tema, reduce motion)
+  - Ranking Online con Prisma SQLite + API routes + LeaderboardModal
+  - Auto-log de sesiones anónimas para balance analytics
+  - Performance Tier (6 niveles: NOVATO→LEYENDA)
+  - **Share Modal**: Twitter + WhatsApp + Copy
+  - Modo Caótico balanceado
+  - Pantallas: Title (con partículas + easter eggs + botones Ranking/Logros), How To Play, Game (responsive), Paused, Game Over (con tier + leaderboard + share)
+  - Persistencia localStorage + Prisma SQLite
+  - 15+ SFX sintetizados con Web Audio API
+  - ScoreBoard con delta flotante animado
+
+Current goals/completed modifications/verification results:
+- ✅ Meta 1: Sistema de Achievements (19 logros, 8 categorías) con notificaciones + panel
+- ✅ Meta 2: Konami code easter egg (TURBO MODE x3 score)
+- ✅ Meta 3: 3 nuevas variantes de tickets (taco-day, client-visit, heavy-day)
+- ✅ Meta 4: Modal de compartir score (Twitter/WhatsApp/Copy)
+- ✅ Meta 5: Balancear modo Caótico (1.4→1.2 speed, 45→60s Gringo)
+- ✅ Meta 6: Verificación con agent-browser exitosa (logro first-blood desbloqueado, TURBO MODE activo)
+- ✅ Meta 7: `bun run lint` pasa sin errores
+
+Unresolved issues or risks, and priority recommendations for the next phase:
+1. **Achievement notifications stack** — actualmente solo muestra una a la vez; si se desbloquean varias simultáneamente, las otras se quedan en cola. Implementar queue más robusto.
+2. **Daily challenge** — aún no implementado; podría agregar ticket único por día con bonus + achievement especial.
+3. **Más variedad en los personajes** — supervisor, gringo, chisme, mantenimiento, calidad, gossip; agregar "el cliente visitante" para variant client-visit.
+4. **Stats dashboard** — mostrar gráficas de progreso histórico (recharts ya instalado).
+5. **Recomendación para próxima fase:** Implementar daily challenge + stats dashboard + revisar achievement queue para múltiples unlocks simultáneos.
+
+Artifacts produced (nuevos en esta sesión):
+- `src/game/store/achievementStore.ts` (~250 líneas, 19 logros)
+- `src/components/game/characters/AchievementPanel.tsx` (~220 líneas, notification + panel)
+- `src/hooks/use-konami-code.ts` (~70 líneas)
+- `src/components/game/effects/TurboModeIndicator.tsx` (~50 líneas)
+- `src/components/game/layout/ShareModal.tsx` (~140 líneas)
+- Modificados:
+  - `src/game/store/gameStore.ts` (turboMode state + variant multipliers + achievement integration)
+  - `src/game/store/inventoryStore.ts` (grantTaco/grantCoffee actions)
+  - `src/game/dragResolver.ts` (powerup achievement integration)
+  - `src/game/types.ts` (9 variantes de TicketVariant)
+  - `src/lib/tickets.ts` (3 nuevas variantes con pesos ajustados)
+  - `src/game/constants.ts` (balance Caótico)
+  - `src/components/game/layout/TicketPanel.tsx` (badges para 9 variantes)
+  - `src/components/game/GameApp.tsx` (Konami code + AchievementNotification + TurboModeIndicator)
+  - `src/components/game/screens/TitleScreen.tsx` (botón Logros + description Caótico actualizada)
+  - `src/components/game/screens/GameOverScreen.tsx` (ShareModal + tier callback)
+  - `src/components/game/layout/BottomBar.tsx` (botón Achievements)
+- Screenshots: 4 nuevas en `/home/z/my-project/download/`
+
+Next agent should:
+1. Leer este worklog y los docs en `/home/z/my-project/docs/` para contexto.
+2. Implementar Daily Challenge (ticket único por día con bonus + achievement especial).
+3. Agregar Stats Dashboard con recharts (gráficas de progreso histórico).
+4. Mejorar achievement notification queue para múltiples unlocks simultáneos.
+5. Considerar agregar personaje "el cliente visitante" para variant client-visit.
+6. Verificar siempre con agent-browser después de implementar.
+7. Mantener `bun run lint` limpio.
+8. Anexar nuevo Task ID al final de este worklog.

@@ -16,6 +16,9 @@ export type TicketVariant =
   | 'splice-heavy' // requiere splice obligatoriamente
   | 'no-terminal' // cable pelado sin terminal (NONE en ambos)
   | 'long-roll' // cable muy largo (>400mm)
+  | 'taco-day' // día del taco: power-up taco garantizado
+  | 'client-visit' // visita del cliente: score x2 en este ticket
+  | 'heavy-day' // día pesado: muchos errores posibles pero score x1.5
 
 export interface TicketWithVariant extends Ticket {
   variant: TicketVariant
@@ -23,12 +26,15 @@ export interface TicketWithVariant extends Ticket {
 }
 
 const VARIANT_WEIGHTS: Array<{ value: TicketVariant; weight: number }> = [
-  { value: 'standard', weight: 50 },
-  { value: 'rush', weight: 12 },
-  { value: 'bulk', weight: 10 },
-  { value: 'splice-heavy', weight: 8 },
-  { value: 'no-terminal', weight: 10 },
-  { value: 'long-roll', weight: 10 },
+  { value: 'standard', weight: 42 },
+  { value: 'rush', weight: 11 },
+  { value: 'bulk', weight: 9 },
+  { value: 'splice-heavy', weight: 7 },
+  { value: 'no-terminal', weight: 9 },
+  { value: 'long-roll', weight: 9 },
+  { value: 'taco-day', weight: 4 },
+  { value: 'client-visit', weight: 5 },
+  { value: 'heavy-day', weight: 4 },
 ]
 
 export function generateTicket(
@@ -115,6 +121,20 @@ export function generateTicket(
   } else if (variant === 'long-roll') {
     baseScore = Math.floor(baseScore * 1.15)
     variantLabel = '📏 LONG'
+  } else if (variant === 'taco-day') {
+    // Día del taco: power-up taco garantizado al completar
+    baseScore = Math.floor(baseScore * 1.2)
+    timeBonusOnComplete = 15
+    variantLabel = '🌮 TACO DAY'
+  } else if (variant === 'client-visit') {
+    // Visita del cliente: score x2 en este ticket
+    baseScore = Math.floor(baseScore * 2)
+    variantLabel = '👀 CLIENTE'
+  } else if (variant === 'heavy-day') {
+    // Día pesado: score x1.5 pero más circuitos
+    baseScore = Math.floor(baseScore * 1.5)
+    circuitCount = Math.max(circuitCount, rng.int(8, 18))
+    variantLabel = '💪 PESADO'
   }
 
   ticketSeq += 1

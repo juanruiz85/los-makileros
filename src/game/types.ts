@@ -61,6 +61,9 @@ export type TicketVariant =
   | 'splice-heavy'
   | 'no-terminal'
   | 'long-roll'
+  | 'taco-day'
+  | 'client-visit'
+  | 'heavy-day'
 
 export interface Ticket {
   id: string
