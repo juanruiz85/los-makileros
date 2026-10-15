@@ -19,7 +19,7 @@ type SfxName =
   | 'gringo-yell'
   | 'supervisor-angry'
 
-type MusicMood = 'normal' | 'intense' | 'happy' | 'tense'
+type MusicMood = 'normal' | 'intense' | 'happy' | 'tense' | 'victory'
 
 class AudioManager {
   private ctx: AudioContext | null = null
@@ -31,6 +31,7 @@ class AudioManager {
   private musicSource: AudioBufferSourceNode | null = null
   private musicGain: GainNode | null = null
   private currentMood: MusicMood = 'normal'
+  private victoryUntil: number = 0
   private bufferCache: Map<SfxName, AudioBuffer> = new Map()
 
   init() {
@@ -322,6 +323,15 @@ class AudioManager {
   }
 
   setMusicMood(mood: MusicMood) {
+    // Victory mood has priority for 2s
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now()
+    if (this.currentMood === 'victory' && now < this.victoryUntil && mood !== 'victory') {
+      // Victory still active, ignore other mood changes
+      return
+    }
+    if (mood === 'victory') {
+      this.victoryUntil = now + 2000
+    }
     if (this.currentMood === mood) return
     this.currentMood = mood
     // Restart music with new mood if currently playing
@@ -374,6 +384,15 @@ class AudioManager {
         tempoMult = 2.0 // very fast, glitchy
         bassGain = 0.05
         melodyGain = 0.03
+        break
+      case 'victory':
+        // Ticket completed: triumphant, ascending major arpeggio
+        melodyNotes = [261, 329, 392, 523, 392, 329, 261, 523] // C E G C (ascending)
+        bassFreq = 65 // C2
+        padFreq = 131
+        tempoMult = 1.3
+        bassGain = 0.07
+        melodyGain = 0.07
         break
       case 'normal':
       default:

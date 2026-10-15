@@ -134,6 +134,17 @@ export function InteractiveTutorial() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-[80] bg-stone-950/85 backdrop-blur-sm flex items-center justify-center p-4"
+          style={{
+            // CSS clip-path spotlight: creates a hole around the tutorial card position
+            // For non-center positions, we create a radial gradient spotlight
+            background: currentStep.position === 'center'
+              ? 'rgba(28, 25, 23, 0.85)'
+              : `radial-gradient(circle at ${
+                  currentStep.position === 'top-left' ? '15% 30%' :
+                  currentStep.position === 'top-right' ? '85% 30%' :
+                  '50% 80%'
+                }, transparent 0%, transparent 25%, rgba(28, 25, 23, 0.85) 50%)`,
+          }}
         >
           {/* Spotlight pulse border */}
           <motion.div
@@ -149,6 +160,9 @@ export function InteractiveTutorial() {
             exit={{ scale: 0.9, opacity: 0, y: -20 }}
             transition={{ type: 'spring', stiffness: 200 }}
             className={`relative bg-stone-900 border-2 border-amber-500 rounded-2xl p-5 max-w-md w-full shadow-2xl ${positionClasses[currentStep.position]}`}
+            style={{
+              boxShadow: '0 0 30px rgba(245,158,11,0.3), 0 10px 40px rgba(0,0,0,0.5)',
+            }}
           >
             {/* Animated arrow pointing to relevant UI area */}
             {currentStep.position !== 'center' && (

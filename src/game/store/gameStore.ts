@@ -25,6 +25,7 @@ import { generateTicket } from '@/lib/tickets'
 import { useAchievementStore } from './achievementStore'
 import { useDailyChallengeStore } from './dailyChallengeStore'
 import { useEventStore } from './eventStore'
+import { audio } from '@/lib/audio'
 
 interface GameStoreState {
   // Pantalla y modo
@@ -415,6 +416,11 @@ export const useGameStore = create<GameStoreState>()(
           ceoVisits: achStore.ceoVisits,
           shortCircuits: achStore.shortCircuits,
         })
+        // Victory music mood flash (2s) before going back to normal
+        audio.setMusicMood('victory')
+        setTimeout(() => {
+          audio.setMusicMood('normal')
+        }, 2000)
         get().loadNextTicket()
       },
 
