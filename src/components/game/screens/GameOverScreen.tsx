@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { useGameStore } from '@/game/store/gameStore'
 import { useInventoryStore } from '@/game/store/inventoryStore'
@@ -10,21 +10,72 @@ import { audio } from '@/lib/audio'
 import { T } from '@/lib/i18n'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Skull, Trophy, RefreshCw, Home } from 'lucide-react'
+import { Skull, Trophy, RefreshCw, Home, Send, Clock } from 'lucide-react'
+import { LeaderboardModal } from '@/components/game/layout/LeaderboardModal'
 
 export function GameOverScreen() {
   const reason = useGameStore((s) => s.gameOverReason)
   const score = useGameStore((s) => s.score)
   const highscore = useGameStore((s) => s.highscore)
   const runStats = useGameStore((s) => s.runStats)
+  const mode = useGameStore((s) => s.mode)
   const start = useGameStore((s) => s.start)
   const setScreen = useGameStore((s) => s.setScreen)
   const reset = useGameStore((s) => s.reset)
   const isNewHigh = score >= highscore && score > 0
 
-  React.useEffect(() => {
+  const [leaderboardOpen, setLeaderboardOpen] = useState(false)
+  const [pendingSubmit, setPendingSubmit] = useState<{
+    score: number
+    tickets: number
+    maxCombo: number
+    mode: 'normal' | 'chaos' | 'free'
+    durationSec: number
+    gringoEncounters: number
+  } | null>(null)
+  const sessionLoggedRef = useRef(false)
+
+  // Play game-over sound once
+  useEffect(() => {
     audio.play('game-over')
   }, [])
+
+  // Auto-log session to backend (anonymous balance analytics)
+  useEffect(() => {
+    if (sessionLoggedRef.current) return
+    sessionLoggedRef.current = true
+    fetch('/api/sessions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        mode,
+        durationSec: Math.floor(runStats.timePlayedSec),
+        ticketsCompleted: runStats.ticketsCompleted,
+        finalScore: score,
+        errors: runStats.errors,
+        gringoEncounters: runStats.gringoEncounters,
+      }),
+    }).catch((e) => console.warn('Failed to log session:', e))
+  }, [mode, runStats, score])
+
+  // Auto-open leaderboard with submit form for new high scores > 0
+  useEffect(() => {
+    if (score > 0) {
+      setPendingSubmit({
+        score,
+        tickets: runStats.ticketsCompleted,
+        maxCombo: runStats.maxCombo,
+        mode,
+        durationSec: Math.floor(runStats.timePlayedSec),
+        gringoEncounters: runStats.gringoEncounters,
+      })
+      // Auto-open if new high (but allow user to close)
+      if (isNewHigh) {
+        const t = setTimeout(() => setLeaderboardOpen(true), 1500)
+        return () => clearTimeout(t)
+      }
+    }
+  }, [score, runStats, mode, isNewHigh])
 
   const handlePlayAgain = () => {
     const inv = useInventoryStore.getState()
@@ -32,6 +83,7 @@ export function GameOverScreen() {
     inv.initInventory()
     useEventStore.getState().reset()
     useStationStore.getState().resetAll()
+    sessionLoggedRef.current = false
     start(useGameStore.getState().mode)
   }
 
@@ -43,7 +95,7 @@ export function GameOverScreen() {
     <div className="min-h-[calc(100vh-60px)] flex items-center justify-center bg-gradient-to-br from-stone-900 via-red-950 to-stone-900 p-4 overflow-hidden">
       {/* Efecto de partículas / papeles caídos */}
       <div className="absolute inset-0 pointer-events-none opacity-20">
-        {Array.from({ length: 20 }).map((_, i) => (
+        {Array.from({ length: 25 }).map((_, i) => (
           <motion.div
             key={i}
             initial={{
@@ -61,6 +113,14 @@ export function GameOverScreen() {
           />
         ))}
       </div>
+
+      {/* Red flash on entering */}
+      <motion.div
+        initial={{ opacity: 0.5 }}
+        animate={{ opacity: 0 }}
+        transition={{ duration: 1 }}
+        className="absolute inset-0 bg-red-500 pointer-events-none"
+      />
 
       <motion.div
         initial={{ scale: 0.7, opacity: 0, y: 30 }}
@@ -90,14 +150,22 @@ export function GameOverScreen() {
               : T.gameover.reasonGringo}
           </p>
 
+          {/* Performance tier message */}
+          <PerformanceTier score={score} tickets={runStats.ticketsCompleted} />
+
           {/* Score final */}
           <div className="bg-stone-900/80 rounded-lg p-4 border border-stone-700 mb-4">
             <div className="text-[10px] font-mono uppercase tracking-widest text-stone-400 text-center">
               {T.gameover.finalScore}
             </div>
-            <div className="text-5xl font-black text-center font-mono text-amber-400 my-1">
+            <motion.div
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 200, delay: 0.2 }}
+              className="text-5xl font-black text-center font-mono text-amber-400 my-1"
+            >
               {score.toLocaleString()}
-            </div>
+            </motion.div>
             {isNewHigh && (
               <motion.div
                 initial={{ scale: 0 }}
@@ -119,6 +187,28 @@ export function GameOverScreen() {
             <StatBox label={T.gameover.gringoEncounters} value={runStats.gringoEncounters} />
           </div>
 
+          {/* Submit to leaderboard button */}
+          {score > 0 && (
+            <Button
+              onClick={() => {
+                setPendingSubmit({
+                  score,
+                  tickets: runStats.ticketsCompleted,
+                  maxCombo: runStats.maxCombo,
+                  mode,
+                  durationSec: Math.floor(runStats.timePlayedSec),
+                  gringoEncounters: runStats.gringoEncounters,
+                })
+                setLeaderboardOpen(true)
+              }}
+              variant="outline"
+              className="w-full mb-2 border-amber-500 text-amber-400 hover:bg-amber-500 hover:text-stone-900"
+            >
+              <Send className="w-4 h-4 mr-2" />
+              Enviar al Ranking Online
+            </Button>
+          )}
+
           {/* Botones */}
           <div className="flex gap-2">
             <Button
@@ -139,6 +229,13 @@ export function GameOverScreen() {
           </div>
         </Card>
       </motion.div>
+
+      {/* Leaderboard Modal */}
+      <LeaderboardModal
+        open={leaderboardOpen}
+        onOpenChange={setLeaderboardOpen}
+        pendingSubmit={pendingSubmit}
+      />
     </div>
   )
 }
@@ -151,5 +248,69 @@ function StatBox({ label, value }: { label: string; value: string | number }) {
       </div>
       <div className="font-bold text-stone-100 text-sm">{value}</div>
     </div>
+  )
+}
+
+function PerformanceTier({ score, tickets }: { score: number; tickets: number }) {
+  let tier: { label: string; emoji: string; color: string; message: string }
+  if (score === 0) {
+    tier = {
+      label: 'NOVATO',
+      emoji: '😴',
+      color: 'text-stone-400 border-stone-600',
+      message: '¿En serio? ¡Ni un ticket! Vamos, inténtalo de nuevo.',
+    }
+  } else if (score < 500) {
+    tier = {
+      label: 'APRENDIZ',
+      emoji: '📖',
+      color: 'text-amber-400 border-amber-600',
+      message: 'Buen inicio. El supervisor te está vigilando.',
+    }
+  } else if (score < 1500) {
+    tier = {
+      label: 'OPERADOR',
+      emoji: '🔧',
+      color: 'text-emerald-400 border-emerald-600',
+      message: 'Ya le agarraste la onda. Sigue practicando.',
+    }
+  } else if (score < 3000) {
+    tier = {
+      label: 'EXPERTO',
+      emoji: '⭐',
+      color: 'text-purple-400 border-purple-600',
+      message: '¡Eres un crack! El Gringo te respeta.',
+    }
+  } else if (score < 5000) {
+    tier = {
+      label: 'MAESTRO',
+      emoji: '🏆',
+      color: 'text-amber-400 border-amber-500',
+      message: '¡Te mereces un taco de canasta gigante!',
+    }
+  } else {
+    tier = {
+      label: 'LEYENDA',
+      emoji: '👑',
+      color: 'text-yellow-400 border-yellow-500',
+      message: '¡El Jefe te quiere de supervisor! ¿Aceptas?',
+    }
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.3 }}
+      className={`mb-4 p-3 rounded-lg border-2 bg-stone-900/60 text-center ${tier.color}`}
+    >
+      <div className="flex items-center justify-center gap-2 mb-1">
+        <span className="text-2xl">{tier.emoji}</span>
+        <span className="font-mono font-black text-sm uppercase tracking-widest">
+          {tier.label}
+        </span>
+      </div>
+      <div className="text-xs font-mono text-stone-300">{tier.message}</div>
+    </motion.div>
   )
 }

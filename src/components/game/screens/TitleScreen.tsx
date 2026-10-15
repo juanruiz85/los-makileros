@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { useGameStore } from '@/game/store/gameStore'
 import { useInventoryStore } from '@/game/store/inventoryStore'
@@ -22,8 +22,10 @@ import {
   Factory,
   FlaskConical,
   Boxes,
+  Trophy,
 } from 'lucide-react'
 import type { GameMode } from '@/game/types'
+import { LeaderboardModal } from '@/components/game/layout/LeaderboardModal'
 
 const FLOATING_TOOLS = [
   { Icon: Scissors, x: '8%', y: '20%', delay: 0, duration: 7, color: 'text-amber-500/40' },
@@ -45,6 +47,25 @@ export function TitleScreen() {
 
   // Si hay una run persistida (currentTicket != null), mostrar "continuar"
   const hasRun = useGameStore((s) => !!s.currentTicket)
+
+  const [leaderboardOpen, setLeaderboardOpen] = useState(false)
+  const [clickCount, setClickCount] = useState(0)
+  const [debugMode, setDebugMode] = useState(false)
+  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const handleTitleClick = () => {
+    const newCount = clickCount + 1
+    setClickCount(newCount)
+    if (clickTimerRef.current) clearTimeout(clickTimerRef.current)
+    clickTimerRef.current = setTimeout(() => setClickCount(0), 1500)
+
+    if (newCount >= 5) {
+      setDebugMode((d) => !d)
+      audio.init()
+      audio.play('combo-chime')
+      setClickCount(0)
+    }
+  }
 
   const handleStart = (mode: GameMode) => {
     audio.init()
@@ -116,10 +137,32 @@ export function TitleScreen() {
             <span className="w-2 h-2 bg-stone-900 rounded-full animate-pulse" />
             Modo Arcade
           </div>
-          <h1 className="text-6xl sm:text-7xl md:text-8xl font-black tracking-tighter text-stone-900 dark:text-stone-50 drop-shadow-[3px_3px_0_rgba(220,38,38,1)]">
+          <h1
+            onClick={handleTitleClick}
+            title={clickCount > 0 ? `${5 - clickCount} clics para debug` : 'Haz clic 5x para modo debug'}
+            className="text-6xl sm:text-7xl md:text-8xl font-black tracking-tighter text-stone-900 dark:text-stone-50 drop-shadow-[3px_3px_0_rgba(220,38,38,1)] cursor-pointer select-none"
+          >
             Los{' '}
             <span className="text-red-600 dark:text-red-500 italic">Makileros</span>
           </h1>
+          {debugMode && (
+            <motion.div
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="mt-2 inline-block px-3 py-1 bg-emerald-500 text-white text-xs font-mono font-bold uppercase tracking-widest rounded-full"
+            >
+              🐛 DEBUG MODE
+            </motion.div>
+          )}
+          {clickCount > 0 && clickCount < 5 && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-[10px] font-mono text-stone-500 dark:text-stone-400 mt-1"
+            >
+              {5 - clickCount} clics más para activar debug
+            </motion.div>
+          )}
           <p className="mt-2 text-xl sm:text-2xl font-mono text-stone-700 dark:text-stone-300 tracking-tight">
             {T.app.subtitle}
           </p>
@@ -184,6 +227,14 @@ export function TitleScreen() {
                 <BookOpen className="w-4 h-4 mr-2" />
                 {T.title.howTo}
               </Button>
+              <Button
+                variant="outline"
+                className="flex-1 border-amber-400 dark:border-amber-500 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-950"
+                onClick={() => setLeaderboardOpen(true)}
+              >
+                <Trophy className="w-4 h-4 mr-2" />
+                Ranking
+              </Button>
             </div>
 
             {highscore > 0 && (
@@ -226,6 +277,9 @@ export function TitleScreen() {
 
       {/* Advertencia horizontal en el borde */}
       <div className="absolute bottom-0 left-0 right-0 h-3 bg-[repeating-linear-gradient(45deg,#fbbf24_0,#fbbf24_20px,#1c1917_20px,#1c1917_40px)]" />
+
+      {/* Leaderboard Modal */}
+      <LeaderboardModal open={leaderboardOpen} onOpenChange={setLeaderboardOpen} />
     </div>
   )
 }

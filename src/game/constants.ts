@@ -188,6 +188,16 @@ export const GRINGO_PHRASES = [
   '¡Come on, prestale attention!',
   '¡You are killing me, muchacho!',
   '¡Hurry up, is not rocket science!',
+  '¡What the heck is going on here?!',
+  '¡You think this is a joke, bato?',
+  '¡Time is money, movete ya!',
+  '¡No wonder we are behind schedule!',
+  '¡Hey muchacho, wake up and smell the coffee!',
+  '¡This is unacceptable, mano, totally unacceptable!',
+  '¡If I see one more mistake, I swear...',
+  '¡Deadline is yesterday, apúrate!',
+  '¡My grandma works faster than you!',
+  '¡Are you sleeping on the job, cabrón?',
 ]
 
 export const SUPERVISOR_WARN_PHRASES = [
@@ -195,6 +205,13 @@ export const SUPERVISOR_WARN_PHRASES = [
   'Oye, ese no es el cable del ticket.',
   'Te falta el terminal, cabrón.',
   'Ese gauge no es, revisa el Garnet.',
+  'No, no, no. Empieza otra vez.',
+  'Checa el color, equis no va.',
+  'Te faltó el tubo de encoge, ponte trucha.',
+  'Ese splice va torcido, corrígelo.',
+  'Ese aplicador no es el del ticket.',
+  '¿Ya escaneaste el Tool ID? Pónle.',
+  'El harness está incompleto, faltan circuitos.',
 ]
 
 export const SUPERVISOR_ANGRY_PHRASES = [
@@ -202,6 +219,11 @@ export const SUPERVISOR_ANGRY_PHRASES = [
   '¡Otra vez tú con lo mismo!',
   '¡Si sigues así te cambio de estación!',
   '¡Ya me hartaste, ponte las pilas!',
+  '¡No es tan difícil, cabrón!',
+  '¡Llevas 3 errores seguidos, ya qué!',
+  '¡Si no le atinas, mejor vete a casa!',
+  '¡El Gringo viene y nos corre a todos!',
+  '¡Ya no hay tiempo, muévete!',
 ]
 
 export const GOSSIP_PHRASES = [
@@ -211,4 +233,13 @@ export const GOSSIP_PHRASES = [
   'Ayer corrieron a Lupe por lo mismo.',
   'El de calidad trae la regla bien medidora.',
   '¿Viste el taco de canasta que trajo Juan?',
+  'El de mantenimiento se quedó dormido en el baño.',
+  'Oye, hay café gratis en la oficina. ¡Pero no le digas a nadie!',
+  'Dicen que hay vacante en otra línea. ¿Te vas?',
+  '¿Ya viste a la nueva? Está bien guapa.',
+  'El jefe anda revisando los WIPs, cuidado.',
+  'Pásame el desarmador, no seas malo.',
+  '¿Cuánto te pagan? Yo gano más en la cantina.',
+  'Ayer se atoró la prensa, qué susto.',
+  'El de mantenimimento anda de crudo otra vez.',
 ]

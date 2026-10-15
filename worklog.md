@@ -514,3 +514,163 @@ Next agent should:
 5. Verificar siempre con agent-browser después de implementar.
 6. Mantener `bun run lint` limpio.
 7. Anexar nuevo Task ID al final de este worklog.
+
+---
+Task ID: 4-f8-leaderboard-phrases-easter
+Agent: Z.ai Code (cron-triggered autonomous agent — 4ta iteración)
+Task: Implementar F8 (Ranking Online con Prisma + API routes + LeaderboardModal), expandir frases del Gringo/Supervisor/Chisme, agregar easter egg de modo debug, performance tier en GameOverScreen. Verificar con agent-browser.
+
+Work Log:
+- Leí el worklog anterior (Task 3-f3.2-f6.2-tickets-settings) que confirmó F3.2 (PressStation), F6.2 (QualityAudit), variantes de tickets, settings modal funcional.
+- Verifiqué dev server corriendo (logs exitosos, GET / 200).
+- QA inicial con agent-browser: title screen carga, modo Normal funciona, todas las estaciones funcionales.
+- **F8.1: Prisma schema** actualizado en `prisma/schema.prisma`:
+  - Modelo `Score`: id, initials (3 chars), score, tickets, maxCombo, mode, durationSec, gringoEncounters, createdAt. Index compuesto en (mode, score desc) para queries rápidas.
+  - Modelo `SessionLog`: id, mode, durationSec, ticketsCompleted, finalScore, errors, gringoEncounters, createdAt. Para balance analytics anónimo.
+  - Ejecuté `bun run db:push` → schema sincronizado + Prisma Client regenerado (v6.19.2).
+- **F8.2: API routes** creadas:
+  - `src/app/api/scores/route.ts`:
+    - GET `/api/scores?mode=normal&limit=10` → lista top 10 scores con validación de query params
+    - POST `/api/scores` con Zod validation (initials 3 chars alfanuméricos, score/tickets/maxCombo/durationSec/gringoEncounters integers, mode enum)
+    - Retorna `{ ok: true, id, rank }` con rank computado vía count de scores superiores
+    - Manejo de errores con try/catch y status codes apropiados (400/500)
+  - `src/app/api/sessions/route.ts`:
+    - POST `/api/sessions` para log anónimo de sesiones (analytics de balance)
+    - Zod validation igual que scores pero sin initials
+- **F8.3: LeaderboardModal** creado en `src/components/game/layout/LeaderboardModal.tsx` (~340 líneas):
+  - Modal con backdrop-blur + animaciones framer-motion
+  - Header con Trophy icon rotante + "Ranking Leaderboard"
+  - Submit form con input de iniciales (3 letras alfanuméricas, uppercase automático, maxLength 3)
+  - Validación local + visual feedback
+  - Estados: submitting (spinner), error (red border), success (emerald con rank "Top N" o "Posición #N")
+  - Filtro de modo: Normal / Caótico / Libre (3 botones toggleables)
+  - Botón "Refrescar" para recargar scores manualmente
+  - Lista de scores con:
+    - Rank 1: 👑 Crown amber
+    - Rank 2: 🥈 Medal silver
+    - Rank 3: 🥉 Medal bronze
+    - Otros: número
+    - "TÚ" badge si es el score recién enviado
+    - Animación staggered de entrada
+    - Initials en mono font-bold tracking-widest
+    - Score en amber tabular-nums
+    - Tickets (NT suffix) y fecha (DD/MM)
+  - Persistencia de iniciales en localStorage (makileros:initials) para autocompletar próxima vez
+  - Indicador "Tu mejor (local)" abajo con highscore persistido
+- **F8.4: Integración LeaderboardModal**:
+  - `GameOverScreen.tsx` actualizado:
+    - Auto-log de sesión anónima a `/api/sessions` al morir (con sessionLoggedRef para evitar dobles logs)
+    - Auto-open del leaderboard modal si es nuevo highscore (después de 1.5s delay)
+    - Botón "Enviar al Ranking Online" visible cuando score > 0
+    - pendingSubmit state con score/tickets/maxCombo/mode/durationSec/gringoEncounters
+    - Red flash al entrar al game over
+    - 25 papeles cayendo animados
+  - `TitleScreen.tsx` actualizado:
+    - Botón "Ranking" agregado (al lado de CÓMO JUGAR)
+    - Abre LeaderboardModal sin pendingSubmit (modo browse)
+- **Performance Tier** en `GameOverScreen.tsx` (componente `PerformanceTier`):
+  - 6 tiers basados en score:
+    - 0 pts → 😴 NOVATO (stone)
+    - <500 → 📖 APRENDIZ (amber)
+    - <1500 → 🔧 OPERADOR (emerald)
+    - <3000 → ⭐ EXPERTO (purple)
+    - <5000 → 🏆 MAESTRO (amber)
+    - 5000+ → 👑 LEYENDA (yellow)
+  - Cada tier con emoji, label, color y mensaje humorístico
+  - Animación de entrada con delay 0.3s
+- **Expansión de frases** en `src/game/constants.ts`:
+  - GRINGO_PHRASES: 6 → 16 frases (nuevas: "¡What the heck is going on here?!", "¡Time is money, movete ya!", "¡My grandma works faster than you!", etc.)
+  - SUPERVISOR_WARN_PHRASES: 4 → 11 frases (nuevas: "No, no, no. Empieza otra vez.", "Ese splice va torcido, corrígelo.", "El harness está incompleto, faltan circuitos.", etc.)
+  - SUPERVISOR_ANGRY_PHRASES: 4 → 9 frases (nuevas: "¡No es tan difícil, cabrón!", "¡El Gringo viene y nos corre a todos!", etc.)
+  - GOSSIP_PHRASES: 6 → 15 frases (nuevas: "El de mantenimiento se quedó dormido en el baño.", "Oye, hay café gratis en la oficina. ¡Pero no le digas a nadie!", "El de mantenimimento anda de crudo otra vez.", etc.)
+- **Easter egg: Modo Debug** en `TitleScreen.tsx`:
+  - 5 clics rápidos (1.5s window) en el título "Los Makileros" activa/desactiva modo debug
+  - Click count se resetea con setTimeout
+  - Visual feedback: "X clics más para activar debug" mientras progresa
+  - Cuando activo: badge 🐛 DEBUG MODE en emerald
+  - Sound combo-chime al activar
+- **Verificación con agent-browser**:
+  - Title screen: botón "Ranking" visible, leaderboard modal abre con "Sin scores todavía. ¡Sé el primero!"
+  - Game completo: Click Normal → cortar cable → score 50 → skip 10 tickets → score 2595 → game over
+  - Game over: PerformanceTier "MAESTRO" visible, auto-open del leaderboard (nuevo highscore)
+  - Submit: fill input "ZAI" → click "Enviar al Ranking" → "¡Score enviado! ¡Top 1! 🎉" → score aparece en lista con badge "TÚ"
+  - API GET `/api/scores?mode=normal&limit=5` retorna el score correctamente
+  - API POST valida correctamente (initials "AB" → 400 con error)
+  - Database verification: `bun -e` confirma score en DB + 4 session logs
+  - Easter egg: 5 clics en título activa "🐛 DEBUG MODE"
+  - Performance tier: score 3920 → MAESTRO con mensaje "¡Te mereces un taco de canasta gigante!"
+  - Sin errores en consola
+- Lint: `bun run lint` → exit code 0 (limpio).
+- Capturas de pantalla en `/home/z/my-project/download/`:
+  - `leaderboard-modal-empty.png` — modal vacío
+  - `leaderboard-after-submit.png` — después de submit
+  - `title-debug-mode.png` — easter egg activado
+  - `gameover-with-tier.png` — game over con MAESTRO tier
+
+Stage Summary:
+- **Fase F8 (Ranking Online) completada**: Prisma schema + API routes + LeaderboardModal + integración en GameOverScreen y TitleScreen.
+- **Submit de scores funciona end-to-end**: game over → auto-log session → input iniciales → POST /api/scores → score en DB → GET /api/scores → leaderboard actualizado con rank.
+- **API validation con Zod**: rechaza inputs inválidos (initials <3 chars, mode inválido, etc.) con status 400.
+- **Frases expandidas**: Gringo 16, Supervisor warn 11, Supervisor angry 9, Chisme 15 (más variedad para evitar repetición).
+- **Performance Tier**: 6 niveles con mensajes humorísticos que reaccionan al score del jugador.
+- **Easter egg Modo Debug**: 5 clics en título activa badge visible.
+
+Current project status description/assessment:
+- **Estado del juego:** Completo y jugable end-to-end con ranking online persistente. Loop principal completo + leaderboard funcional + analytics anónimos.
+- **Características implementadas (acumuladas):**
+  - 4 estaciones totalmente funcionales: Corte + Splices + Prensas + Harness
+  - Almacén funcional con delivery + power-ups
+  - 2 mini-juegos modales: Mantenimiento + Quick Audit
+  - 6 variantes de tickets con badges
+  - Eventos aleatorios con frases expandidas (Gringo 16, Supervisor 11+9, Chisme 15)
+  - Sistema de combos x3 → Modo Rápido
+  - Power-ups: Café + Taco
+  - Settings modal funcional (volumen, música, tema, reduce motion)
+  - Ranking Online con Prisma SQLite + API routes + LeaderboardModal
+  - Auto-log de sesiones anónimas para balance analytics
+  - Performance Tier (6 niveles: NOVATO→LEYENDA)
+  - Easter egg: Modo Debug (5 clics en título)
+  - Pantallas: Title (con partículas + easter egg), How To Play, Game (responsive), Paused, Game Over (con tier + auto-leaderboard)
+  - Persistencia localStorage + Prisma SQLite
+  - 15+ SFX sintetizados con Web Audio API
+  - ScoreBoard con delta flotante animado
+
+Current goals/completed modifications/verification results:
+- ✅ Meta 1: F8 (Ranking Online) completo con Prisma + API + LeaderboardModal
+- ✅ Meta 2: 16 frases del Gringo, 11 supervisor warn, 9 supervisor angry, 15 chisme
+- ✅ Meta 3: Easter egg Modo Debug (5 clics en título)
+- ✅ Meta 4: Performance Tier con 6 niveles y mensajes humorísticos
+- ✅ Meta 5: Auto-log de sesiones anónimas para analytics
+- ✅ Meta 6: Submit de scores end-to-end verificado (ZAI 2595 en top 1)
+- ✅ Meta 7: API validation con Zod rechaza inputs inválidos
+- ✅ Meta 8: Verificación con agent-browser exitosa, lint limpio
+
+Unresolved issues or risks, and priority recommendations for the next phase:
+1. **Modo Caótico balance** — aún no balanceado (Gringo cada 45s + 50% eventos puede ser muy difícil)
+2. **Música de fondo** — actualmente es muy básica (osciladores); podría usar samples reales
+3. **Más variantes de eventos** — agregar eventos especiales como "día del taco" o "visita del cliente"
+4. **Internacionalización** — actualmente solo español; podría migrar a next-intl para multi-idioma
+5. **Más easter eggs** — agregar más secretos (ej. konami code)
+6. **Recomendación para próxima fase:** Balancear modo Caótico + agregar más variedad de tickets especiales + posiblemente soporte para compartir scores en redes.
+
+Artifacts produced (nuevos en esta sesión):
+- `prisma/schema.prisma` (actualizado con Score + SessionLog)
+- `src/app/api/scores/route.ts` (~95 líneas)
+- `src/app/api/sessions/route.ts` (~40 líneas)
+- `src/components/game/layout/LeaderboardModal.tsx` (~340 líneas)
+- Modificados:
+  - `src/components/game/screens/GameOverScreen.tsx` (auto-log + leaderboard + PerformanceTier)
+  - `src/components/game/screens/TitleScreen.tsx` (botón Ranking + easter egg debug)
+  - `src/game/constants.ts` (frases expandidas)
+- Database: db/custom.db actualizado con tablas Score y SessionLog
+- Screenshots: 4 nuevas en `/home/z/my-project/download/`
+
+Next agent should:
+1. Leer este worklog y los docs en `/home/z/my-project/docs/` para contexto.
+2. Balancear modo Caótico (Gringo cada 45s + 50% eventos puede ser muy difícil).
+3. Agregar más variedad de tickets especiales (día del taco, visita del cliente, etc.).
+4. Considerar agregar soporte multi-idioma con next-intl.
+5. Más easter eggs (ej. konami code → modo turbo).
+6. Verificar siempre con agent-browser después de implementar.
+7. Mantener `bun run lint` limpio.
+8. Anexar nuevo Task ID al final de este worklog.
