@@ -4,7 +4,7 @@
 import type { CableColor, CableGauge, TerminalType, EventKind, GameMode } from './types'
 
 // === Tiempo ===
-export const START_TIME_SEC = 120
+export const START_TIME_SEC = 150
 export const TICK_DELTA_SCALE = {
   normal: 1.0,
   chaos: 1.2, // balanced: was 1.4 (too punishing), now 1.2

@@ -5,6 +5,12 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useEventStore } from '@/game/store/eventStore'
 import { useGameStore } from '@/game/store/gameStore'
 import { CLIENT_VISIT_PHRASES } from '@/game/constants'
+import {
+  GringoCharacter,
+  SupervisorCharacter,
+  GossipCharacter,
+  ClientCharacter,
+} from './CharacterSVGs'
 
 export function CharacterLayer() {
   const activeEvents = useEventStore((s) => s.activeEvents)
@@ -78,15 +84,12 @@ function SupervisorBubble({ level, phrase }: { level: 1 | 2; phrase?: string }) 
       className="absolute top-24 left-4 z-30 pointer-events-none"
     >
       <div className="flex items-end gap-2">
-        {/* Personaje supervisor */}
+        {/* Personaje supervisor SVG */}
         <motion.div
-          animate={level === 2 ? { rotate: [-3, 3, -3] } : {}}
+          animate={level === 2 ? { x: [-3, 3, -3] } : {}}
           transition={{ duration: 0.3, repeat: level === 2 ? Infinity : 0 }}
-          className={`w-16 h-16 rounded-full border-4 ${
-            level === 2 ? 'border-red-500 bg-red-100' : 'border-stone-400 bg-stone-200'
-          } flex items-center justify-center text-3xl shadow-xl`}
         >
-          {level === 2 ? '😡' : '👔'}
+          <SupervisorCharacter size={90} angry={level === 2} />
         </motion.div>
         {/* Globo de diálogo */}
         <div
@@ -97,7 +100,7 @@ function SupervisorBubble({ level, phrase }: { level: 1 | 2; phrase?: string }) 
           }`}
         >
           <div className="text-[10px] font-mono uppercase opacity-70 mb-0.5">
-            {level === 2 ? '😡 El Jefe' : '👔 Supervisor'}
+            {level === 2 ? '😡 El Jefe' : '👔 Supervisor de Producción'}
           </div>
           <div className="text-sm font-medium">
             {phrase ?? (level === 2 ? '¡Ya vas muy lento, ponle ganas!' : 'Eh, checa el programa...')}
@@ -121,17 +124,16 @@ function GossipBubble({ phrase }: { phrase?: string }) {
         {/* Globo pensamiento */}
         <div className="px-3 py-2 bg-purple-500 text-white rounded-lg shadow-lg border-2 border-purple-300 max-w-xs">
           <div className="text-[10px] font-mono uppercase opacity-70 mb-0.5">
-            💬 Compañero chismoso
+            💬 Compañero Chismoso
           </div>
           <div className="text-sm">{phrase ?? '¿Oíste que el Gringo viene hoy?'}</div>
         </div>
-        {/* Personaje */}
+        {/* Personaje SVG */}
         <motion.div
           animate={{ rotate: [-2, 2, -2] }}
           transition={{ duration: 1.5, repeat: Infinity }}
-          className="w-12 h-12 rounded-full bg-purple-200 border-4 border-purple-500 flex items-center justify-center text-2xl shadow-xl"
         >
-          🗣️
+          <GossipCharacter size={80} />
         </motion.div>
       </div>
     </motion.div>
@@ -159,17 +161,13 @@ function ClientVisitBubble({ phrase, persistent }: { phrase?: string; persistent
           </div>
           <div className="text-sm">{phrase ?? 'Hola, vengo a ver cómo va mi orden.'}</div>
         </div>
-        {/* Personaje cliente */}
+        {/* Personaje cliente SVG */}
         <motion.div
           animate={{ rotate: [0, -3, 3, 0] }}
           transition={{ duration: 2, repeat: Infinity }}
-          className={`w-16 h-16 rounded-full border-4 flex items-center justify-center text-3xl shadow-xl ${
-            persistent
-              ? 'border-emerald-500 bg-emerald-200 animate-pulse'
-              : 'border-emerald-400 bg-emerald-100'
-          }`}
+          className={persistent ? 'animate-pulse' : ''}
         >
-          🧑‍💼
+          <ClientCharacter size={85} />
         </motion.div>
       </div>
     </motion.div>
@@ -321,13 +319,21 @@ function GringoBackdrop() {
         transition={{ duration: 0.3, repeat: Infinity }}
         className="flex flex-col items-center"
       >
-        <div className="text-8xl mb-2">🤬</div>
+        {/* Personaje SVG del Gringo que entra por la derecha */}
+        <motion.div
+          initial={{ x: 200, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          exit={{ x: 200, opacity: 0 }}
+          transition={{ type: 'spring', stiffness: 100, delay: 0.1 }}
+        >
+          <GringoCharacter size={140} />
+        </motion.div>
         <motion.div
           animate={{
             scale: [1, 1.1, 1],
           }}
           transition={{ duration: 0.4, repeat: Infinity }}
-          className="px-6 py-3 bg-red-500 text-white rounded-lg border-4 border-red-700 font-black text-3xl shadow-2xl"
+          className="px-6 py-3 bg-red-500 text-white rounded-lg border-4 border-red-700 font-black text-3xl shadow-2xl mt-2"
         >
           THE GRINGO
         </motion.div>
