@@ -133,16 +133,45 @@ export function InteractiveTutorial() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[80] bg-stone-950/80 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-[80] bg-stone-950/85 backdrop-blur-sm flex items-center justify-center p-4"
         >
+          {/* Spotlight pulse border */}
+          <motion.div
+            animate={{ boxShadow: ['0 0 0 0 rgba(245,158,11,0.4)', '0 0 0 8px rgba(245,158,11,0)'] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+            className={`fixed ${positionClasses[currentStep.position]} pointer-events-none`}
+          />
+
           <motion.div
             key={step}
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.9, opacity: 0, y: -20 }}
             transition={{ type: 'spring', stiffness: 200 }}
-            className={`bg-stone-900 border-2 border-amber-500 rounded-2xl p-5 max-w-md w-full shadow-2xl ${positionClasses[currentStep.position]}`}
+            className={`relative bg-stone-900 border-2 border-amber-500 rounded-2xl p-5 max-w-md w-full shadow-2xl ${positionClasses[currentStep.position]}`}
           >
+            {/* Animated arrow pointing to relevant UI area */}
+            {currentStep.position !== 'center' && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className={`absolute text-amber-500 text-2xl ${
+                  currentStep.position === 'top-right'
+                    ? '-right-2 top-1/2 rotate-180'
+                    : currentStep.position === 'top-left'
+                      ? '-left-2 top-1/2'
+                      : '-bottom-2 left-1/2 -translate-x-1/2 rotate-90'
+                }`}
+              >
+                <motion.span
+                  animate={{ x: [0, 8, 0] }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                >
+                  👉
+                </motion.span>
+              </motion.div>
+            )}
+
             {/* Header */}
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
@@ -161,8 +190,10 @@ export function InteractiveTutorial() {
               </button>
             </div>
 
-            {/* Title */}
-            <h2 className="text-lg font-black text-stone-100 mb-2">{currentStep.title}</h2>
+            {/* Title with subtle glow */}
+            <h2 className="text-lg font-black text-stone-100 mb-2 drop-shadow-[0_0_8px_rgba(245,158,11,0.3)]">
+              {currentStep.title}
+            </h2>
 
             {/* Body */}
             <p className="text-sm text-stone-300 mb-4 leading-relaxed">{currentStep.body}</p>

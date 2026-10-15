@@ -4,10 +4,16 @@ import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useEventStore } from '@/game/store/eventStore'
 import { useGameStore } from '@/game/store/gameStore'
+import { CLIENT_VISIT_PHRASES } from '@/game/constants'
 
 export function CharacterLayer() {
   const activeEvents = useEventStore((s) => s.activeEvents)
   const gringoImmunity = useGameStore((s) => s.gringoImmunityTicketsLeft)
+  const currentTicket = useGameStore((s) => s.currentTicket)
+  const clientVisitActive = useEventStore((s) => s.clientVisitActive)
+  // Show client visitante when ticket has variant client-visit (and no active client-visit event already showing)
+  const showClientForVariant =
+    currentTicket?.variant === 'client-visit' && !clientVisitActive && currentTicket.status === 'active'
 
   return (
     <div className="absolute inset-0 pointer-events-none">
@@ -38,6 +44,15 @@ export function CharacterLayer() {
           }
         })}
       </AnimatePresence>
+
+      {/* Cliente visitante visible cuando el ticket tiene variant client-visit */}
+      {showClientForVariant && (
+        <ClientVisitBubble
+          key={`variant-client-${currentTicket.id}`}
+          phrase="El cliente está observando. ¡Score x2 al completar!"
+          persistent
+        />
+      )}
 
       {/* Inmunidad taco visual */}
       {gringoImmunity > 0 && (
@@ -123,7 +138,7 @@ function GossipBubble({ phrase }: { phrase?: string }) {
   )
 }
 
-function ClientVisitBubble({ phrase }: { phrase?: string }) {
+function ClientVisitBubble({ phrase, persistent }: { phrase?: string; persistent?: boolean }) {
   return (
     <motion.div
       initial={{ x: 300, opacity: 0 }}
@@ -134,9 +149,13 @@ function ClientVisitBubble({ phrase }: { phrase?: string }) {
     >
       <div className="flex items-end gap-2">
         {/* Globo de diálogo */}
-        <div className="px-3 py-2 bg-emerald-600 text-white rounded-lg shadow-lg border-2 border-emerald-300 max-w-xs">
+        <div className={`px-3 py-2 text-white rounded-lg shadow-lg border-2 max-w-xs ${
+          persistent
+            ? 'bg-emerald-700 border-emerald-400'
+            : 'bg-emerald-600 border-emerald-300'
+        }`}>
           <div className="text-[10px] font-mono uppercase opacity-90 mb-0.5">
-            👀 Cliente VIP
+            {persistent ? '👀 Cliente observando' : '👀 Cliente VIP'}
           </div>
           <div className="text-sm">{phrase ?? 'Hola, vengo a ver cómo va mi orden.'}</div>
         </div>
@@ -144,7 +163,11 @@ function ClientVisitBubble({ phrase }: { phrase?: string }) {
         <motion.div
           animate={{ rotate: [0, -3, 3, 0] }}
           transition={{ duration: 2, repeat: Infinity }}
-          className="w-16 h-16 rounded-full border-4 border-emerald-400 bg-emerald-100 flex items-center justify-center text-3xl shadow-xl"
+          className={`w-16 h-16 rounded-full border-4 flex items-center justify-center text-3xl shadow-xl ${
+            persistent
+              ? 'border-emerald-500 bg-emerald-200 animate-pulse'
+              : 'border-emerald-400 bg-emerald-100'
+          }`}
         >
           🧑‍💼
         </motion.div>

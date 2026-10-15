@@ -1305,3 +1305,140 @@ Next agent should:
 6. Verificar siempre con agent-browser después de implementar.
 7. Mantener `bun run lint` limpio.
 8. Anexar nuevo Task ID al final de este worklog.
+
+---
+Task ID: 9-client-variant-dynamic-music-spotlight
+Agent: Z.ai Code (cron-triggered autonomous agent — 9na iteración)
+Task: Hacer cliente visitante visible para variant client-visit, implementar música dinámica según evento activo, agregar spotlight visual al tutorial, mejorar styling del Timer con glow effects. Verificar con agent-browser.
+
+Work Log:
+- Leí el worklog anterior (Task 8-new-events-tutorial) que confirmó 3 nuevos eventos especiales, tutorial interactivo, 29 logros.
+- Verifiqué dev server corriendo (logs exitosos, GET / 200).
+- QA inicial con agent-browser: title screen carga con todos los botones.
+- **Cliente visitante visible para variant client-visit** en CharacterLayer:
+  - Nuevo campo `showClientForVariant` que verifica si currentTicket.variant === 'client-visit' y no hay evento client-visit activo
+  - Renderiza ClientVisitBubble con prop `persistent=true` cuando el ticket tiene variant client-visit
+  - ClientVisitBubble ampliado con prop `persistent`:
+    - persistent=true: bg emerald-700 + border emerald-400 + "👀 Cliente observando" + animate-pulse en personaje
+    - persistent=false: bg emerald-600 + border emerald-300 + "👀 Cliente VIP" (estilo original)
+  - Frase: "El cliente está observando. ¡Score x2 al completar!"
+  - Import CLIENT_VISIT_PHRASES de constants
+- **Música dinámica según evento activo** en audio.ts:
+  - Nuevo tipo `MusicMood = 'normal' | 'intense' | 'happy' | 'tense'`
+  - Nuevo campo `currentMood` en AudioManager
+  - Nuevo método `setMusicMood(mood)` que cambia el mood y reinicia la música si está sonando
+  - startMusic() ahora genera diferentes patrones según mood:
+    - **normal**: pentatonic A minor (220, 261, 293, 329, 392 Hz), bass 55Hz, tempo 1.0
+    - **intense** (supervisor rampage): chromatic tension (220, 233, 220, 207 Hz), bass 49Hz (G1 darker), tempo 1.5 (faster), bassGain 0.09 (más fuerte)
+    - **happy** (taco day/CEO/client visit): C major upbeat (261, 329, 392, 440 Hz), bass 65Hz (C2), tempo 1.2, melodyGain 0.06
+    - **tense** (short circuit): microtonal glitchy (110, 116, 110, 123 Hz), bass 41Hz (E1 very low), tempo 2.0 (very fast), bassGain 0.05
+  - Game loop actualiza mood cada frame según eventos activos:
+    - shortCircuitActive → tense
+    - supervisorRampageActive → intense
+    - tacoDayActive || ceoVisitActive || clientVisitActive → happy
+    - else → normal
+- **Tutorial con spotlight visual** en InteractiveTutorial.tsx:
+  - Spotlight pulse border: motion.div con boxShadow animado ['0 0 0 0 rgba(245,158,11,0.4)', '0 0 0 8px rgba(245,158,11,0)'] repeat infinite
+  - Posicionado según currentStep.position (top-left, top-right, bottom-center)
+  - Animated arrow 👉 pointing to relevant UI area:
+    - top-right: arrow a la izquierda rotado 180°
+    - top-left: arrow a la derecha
+    - bottom-center: arrow abajo rotado 90°
+  - Animación del arrow: x [0, 8, 0] repeat infinite (movimiento lateral sutil)
+  - Title con drop-shadow glow: `drop-shadow-[0_0_8px_rgba(245,158,11,0.3)]`
+  - Backdrop más oscuro: bg-stone-950/85 (antes /80)
+- **Timer mejorado con glow effects**:
+  - boxShadow dinámico según urgencia:
+    - timerSec <= 15: `0 0 12px rgba(239,68,68,0.5)` (glow rojo fuerte)
+    - timerSec <= 30: `0 0 8px rgba(245,158,11,0.3)` (glow amber suave)
+    - else: sin glow
+  - Border ahora también cambia a amber cuando timerSec <= 30 (antes solo stone-700)
+  - Clock icon con animate-pulse cuando timerSec <= 15
+  - Badge ❄ cuando timerFrozen (cafecito active)
+- Verifiqué con agent-browser:
+  - Title screen: botones Ranking/Logros/Stats + Daily Challenge featured
+  - Click Normal → InteractiveTutorial auto-abre con "¡Bienvenido a la planta!"
+  - Screenshot tutorial-with-spotlight.png: spotlight border visible
+  - Click Siguiente → step 2 "Lee el ticket" con arrow 👉 pointing top-right
+  - Screenshot tutorial-step2-arrow.png: arrow visible
+  - Click Saltar → tutorial se cierra, juego funcional
+  - Game over con botones Ranking + Compartir visibles
+  - Sin errores de React en consola
+- Lint: `bun run lint` → exit code 0 (limpio).
+- Capturas de pantalla en `/home/z/my-project/download/`:
+  - `tutorial-with-spotlight.png` — tutorial step 1 con spotlight border
+  - `tutorial-step2-arrow.png` — tutorial step 2 con arrow 👉
+  - `gameover-with-share-ranking.png` — game over con botones Ranking + Compartir
+
+Stage Summary:
+- **Cliente visitante visible para variant client-visit**: personaje persistente con badge "Cliente observando" cuando el ticket tiene variant client-visit.
+- **Música dinámica**: 4 moods (normal/intense/happy/tense) con patrones melódicos diferentes según evento activo.
+- **Tutorial con spotlight**: pulse border amber + arrow 👉 pointing to UI areas + title con glow drop-shadow.
+- **Timer con glow effects**: boxShadow dinámico (rojo fuerte <15s, amber suave <30s) + border amber + Clock animate-pulse + badge ❄ cuando frozen.
+- **QA exitoso**: tutorial auto-abre con spotlight, navegación funciona, sin errores.
+
+Current project status description/assessment:
+- **Estado del juego:** Completo y jugable end-to-end con cliente visitante para variant client-visit, música dinámica de 4 moods, tutorial con spotlight, Timer con glow effects, 29 logros, 5 special events, ranking online, daily challenge, stats dashboard, keyboard shortcuts, easter eggs.
+- **Características implementadas (acumuladas):**
+  - 4 estaciones totalmente funcionales: Corte + Splices + Prensas + Harness
+  - Almacén funcional con delivery + power-ups
+  - 2 mini-juegos modales: Mantenimiento + Quick Audit
+  - 9 variantes de tickets con badges visuales
+  - **29 logros** con notificaciones + panel modal + persistencia (cola de 3 simultáneas)
+  - **Daily Challenge**: ticket diario con stories, bonus x2-x3, racha de días
+  - **Stats Dashboard**: 3 gráficas recharts + KPIs + stats acumuladas
+  - **5 Special Events**: Cliente Visitante + Supervisor Rampage + Día del Taco + Cortocircuito + Visita del CEO
+  - **Cliente visitante visible para variant client-visit** (persistente con "Cliente observando")
+  - **Interactive Tutorial con spotlight**: 10 pasos, auto-open, spotlight border + arrow 👉
+  - **Música dinámica**: 4 moods (normal/intense/happy/tense) según evento activo
+  - **Keyboard Shortcuts**: 1-4 estaciones, P pausa, Esc back
+  - Konami code: TURBO MODE x3 score
+  - Modo Debug: 5 clics en título (easter egg)
+  - Eventos aleatorios con frases expandidas
+  - Sistema de combos x3 → Modo Rápido
+  - Power-ups: Café + Taco
+  - Settings modal funcional (volumen, música, tema, reduce motion)
+  - Ranking Online con Prisma SQLite + API routes + LeaderboardModal
+  - Performance Tier (6 niveles: NOVATO→LEYENDA)
+  - Share Modal: Twitter + WhatsApp + Copy
+  - Modo Caótico balanceado
+  - Pantallas: Title, How To Play, Game (responsive), Paused, Game Over
+  - Persistencia localStorage + Prisma SQLite
+  - 15+ SFX sintetizados con Web Audio API
+  - Música de fondo con 4 moods dinámicos
+  - ScoreBoard con delta flotante animado
+  - **Timer con glow effects** dinámicos según urgencia
+
+Current goals/completed modifications/verification results:
+- ✅ Meta 1: Cliente visitante visible para variant client-visit (persistent ClientVisitBubble)
+- ✅ Meta 2: Música dinámica de 4 moods (normal/intense/happy/tense)
+- ✅ Meta 3: Tutorial con spotlight (pulse border + arrow 👉 + title glow)
+- ✅ Meta 4: Timer con glow effects (boxShadow dinámico + border amber + Clock pulse + ❄ badge)
+- ✅ Meta 5: Verificación con agent-browser exitosa (tutorial auto-abre con spotlight)
+- ✅ Meta 6: `bun run lint` pasa sin errores
+
+Unresolved issues or risks, and priority recommendations for the next phase:
+1. **Internacionalización** — aún solo español; next-intl para multi-idioma
+2. **Más variaciones de música** — podría agregar mood "victory" para cuando se completa un ticket
+3. **Tutorial con highlight real** — actualmente el spotlight es solo un border pulse; podría usar CSS clip-path para hacer un hole en el overlay
+4. **Más easter eggs** — agregar más secretos además del Konami code y debug mode
+5. **Recomendación para próxima fase:** i18n con next-intl + más easter eggs + música victory mood.
+
+Artifacts produced (nuevos en esta sesión):
+- Modificados:
+  - `src/components/game/characters/CharacterLayer.tsx` (showClientForVariant + ClientVisitBubble persistent prop)
+  - `src/lib/audio.ts` (MusicMood type + currentMood + setMusicMood + 4 moods en startMusic)
+  - `src/hooks/use-game-loop.ts` (dynamic music mood switching)
+  - `src/components/game/screens/InteractiveTutorial.tsx` (spotlight pulse + arrow 👉 + title glow)
+  - `src/components/game/hud/Timer.tsx` (glow effects + border amber + Clock pulse + ❄ badge)
+- Screenshots: 3 nuevas en `/home/z/my-project/download/`
+
+Next agent should:
+1. Leer este worklog y los docs en `/home/z/my-project/docs/` para contexto.
+2. Implementar i18n con next-intl (español + inglés).
+3. Agregar música "victory" mood cuando se completa un ticket.
+4. Considerar CSS clip-path para spotlight real en tutorial (hole en overlay).
+5. Más easter eggs además del Konami code y debug mode.
+6. Verificar siempre con agent-browser después de implementar.
+7. Mantener `bun run lint` limpio.
+8. Anexar nuevo Task ID al final de este worklog.

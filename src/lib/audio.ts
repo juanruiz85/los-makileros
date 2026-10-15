@@ -19,6 +19,8 @@ type SfxName =
   | 'gringo-yell'
   | 'supervisor-angry'
 
+type MusicMood = 'normal' | 'intense' | 'happy' | 'tense'
+
 class AudioManager {
   private ctx: AudioContext | null = null
   private masterGain: GainNode | null = null
@@ -28,6 +30,7 @@ class AudioManager {
   private musicEnabled = false
   private musicSource: AudioBufferSourceNode | null = null
   private musicGain: GainNode | null = null
+  private currentMood: MusicMood = 'normal'
   private bufferCache: Map<SfxName, AudioBuffer> = new Map()
 
   init() {
@@ -318,35 +321,90 @@ class AudioManager {
     }
   }
 
+  setMusicMood(mood: MusicMood) {
+    if (this.currentMood === mood) return
+    this.currentMood = mood
+    // Restart music with new mood if currently playing
+    if (this.musicSource && this.musicEnabled) {
+      this.startMusic()
+    }
+  }
+
   startMusic() {
     if (!this.ctx || !this.musicEnabled) return
     this.stopMusic()
     const sr = this.ctx.sampleRate
-    const duration = 8.0 // longer loop
+    const duration = 8.0
     const len = Math.floor(sr * duration)
     const buf = this.ctx.createBuffer(1, len, sr)
     const data = buf.getChannelData(0)
-    // Bass line: steady pulse (60bpm feel) at 55Hz (A1) and 110Hz (A2)
-    // Melodic line: pentatonic A minor riff (A C D E G) — 220, 261, 293, 329, 392 Hz
-    const melodyNotes = [220, 261, 293, 329, 392, 329, 293, 261]
+
+    // Different musical patterns per mood
+    let melodyNotes: number[]
+    let bassFreq: number
+    let padFreq: number
+    let tempoMult: number
+    let bassGain: number
+    let melodyGain: number
+
+    switch (this.currentMood) {
+      case 'intense':
+        // Supervisor rampage: fast, aggressive, dissonant
+        melodyNotes = [220, 233, 220, 207, 220, 233, 220, 207] // chromatic tension
+        bassFreq = 49 // G1 - lower, darker
+        padFreq = 98
+        tempoMult = 1.5 // faster
+        bassGain = 0.09
+        melodyGain = 0.05
+        break
+      case 'happy':
+        // Taco day: upbeat, cheerful, major key
+        melodyNotes = [261, 329, 392, 440, 392, 329, 261, 329] // C major upbeat
+        bassFreq = 65 // C2
+        padFreq = 131
+        tempoMult = 1.2
+        bassGain = 0.07
+        melodyGain = 0.06
+        break
+      case 'tense':
+        // Short circuit: staccato, glitchy
+        melodyNotes = [110, 116, 110, 123, 110, 116, 110, 123] // microtonal
+        bassFreq = 41 // E1 - very low
+        padFreq = 82
+        tempoMult = 2.0 // very fast, glitchy
+        bassGain = 0.05
+        melodyGain = 0.03
+        break
+      case 'normal':
+      default:
+        // Default: pentatonic A minor
+        melodyNotes = [220, 261, 293, 329, 392, 329, 293, 261]
+        bassFreq = 55
+        padFreq = 110
+        tempoMult = 1.0
+        bassGain = 0.06
+        melodyGain = 0.04
+        break
+    }
+
     const noteDuration = duration / melodyNotes.length
     for (let i = 0; i < len; i++) {
       const t = i / sr
-      const noteIdx = Math.floor(t / noteDuration) % melodyNotes.length
+      const noteIdx = Math.floor(t / noteDuration * tempoMult) % melodyNotes.length
       const noteF = melodyNotes[noteIdx]
-      const localT = (t % noteDuration)
+      const localT = (t % (noteDuration / tempoMult))
       // Bass
       const bassEnv = Math.exp(-1.5 * (localT % 1))
-      const bass = 0.06 * bassEnv * Math.sin(2 * Math.PI * 55 * t)
-      // Melody (sine + slight detune)
-      const melodyEnv = Math.exp(-2 * (localT % noteDuration))
-      const melody = 0.04 * melodyEnv * (
+      const bass = bassGain * bassEnv * Math.sin(2 * Math.PI * bassFreq * t)
+      // Melody
+      const melodyEnv = Math.exp(-2 * (localT % (noteDuration / tempoMult)))
+      const melody = melodyGain * melodyEnv * (
         Math.sin(2 * Math.PI * noteF * t) +
         0.3 * Math.sin(2 * Math.PI * noteF * 1.005 * t)
       )
-      // Pad: slow LFO modulated drone
-      const pad = 0.02 * Math.sin(2 * Math.PI * 110 * t + Math.sin(t * 0.2) * 2)
-      // Soft noise (hi-hat feel)
+      // Pad
+      const pad = 0.02 * Math.sin(2 * Math.PI * padFreq * t + Math.sin(t * 0.2) * 2)
+      // Noise
       const noise = 0.008 * (Math.random() * 2 - 1) * Math.exp(-15 * (localT % 0.5))
       data[i] = bass + melody + pad + noise
     }

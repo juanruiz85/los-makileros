@@ -37,6 +37,20 @@ export function useGameLoop() {
       useEventStore.getState().clearExpiredSubtitles(now)
       useEventStore.getState().clearExpiredSpecialEvents(now)
 
+      // Dynamic music: change mood based on active special events
+      if (screen === 'playing') {
+        const ev = useEventStore.getState()
+        let targetMood: 'normal' | 'intense' | 'happy' | 'tense' = 'normal'
+        if (ev.shortCircuitActive) {
+          targetMood = 'tense'
+        } else if (ev.supervisorRampageActive) {
+          targetMood = 'intense'
+        } else if (ev.tacoDayActive || ev.ceoVisitActive || ev.clientVisitActive) {
+          targetMood = 'happy'
+        }
+        audio.setMusicMood(targetMood)
+      }
+
       // Spawnea eventos aleatorios cada 5s
       if (screen === 'playing') {
         eventCheckAccum += delta

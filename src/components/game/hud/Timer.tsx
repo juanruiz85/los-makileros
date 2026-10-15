@@ -8,6 +8,7 @@ import { Clock } from 'lucide-react'
 export function Timer() {
   const timerSec = useGameStore((s) => s.timerSec)
   const mode = useGameStore((s) => s.mode)
+  const timerFrozen = useGameStore((s) => s.timerFrozen)
 
   if (mode === 'free') {
     return (
@@ -36,6 +37,12 @@ export function Timer() {
       : timerSec <= 30
         ? 'bg-amber-950'
         : 'bg-stone-800'
+  const border =
+    timerSec <= 15
+      ? 'border-red-500'
+      : timerSec <= 30
+        ? 'border-amber-500'
+        : 'border-stone-700'
 
   return (
     <motion.div
@@ -45,12 +52,26 @@ export function Timer() {
           : {}
       }
       transition={{ duration: 0.5, repeat: timerSec <= 15 ? Infinity : 0 }}
-      className={`flex items-center gap-2 px-3 py-1.5 ${bg} rounded-lg border-2 ${
-        timerSec <= 15 ? 'border-red-500' : 'border-stone-700'
-      }`}
+      className={`relative flex items-center gap-2 px-3 py-1.5 ${bg} rounded-lg border-2 ${border}`}
+      style={
+        timerSec <= 15
+          ? { boxShadow: '0 0 12px rgba(239,68,68,0.5)' }
+          : timerSec <= 30
+            ? { boxShadow: '0 0 8px rgba(245,158,11,0.3)' }
+            : {}
+      }
     >
-      <Clock className={`w-4 h-4 ${color}`} />
+      <Clock className={`w-4 h-4 ${color} ${timerSec <= 15 ? 'animate-pulse' : ''}`} />
       <span className={`font-mono text-2xl font-black ${color} tabular-nums`}>{txt}</span>
+      {timerFrozen && (
+        <motion.span
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="absolute -top-2 -right-2 text-[10px] font-mono font-bold bg-yellow-400 text-stone-900 px-1.5 py-0.5 rounded-full border border-stone-900"
+        >
+          ❄
+        </motion.span>
+      )}
     </motion.div>
   )
 }
