@@ -19,6 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GITHUB_PAGES: "true"
+      DATABASE_URL: "file:./db/custom.db"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -31,11 +32,19 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      - name: Remove API routes (not supported in static export)
+        run: rm -rf src/app/api
+
+      - name: Remove Prisma imports (not needed for static)
+        run: |
+          # Remove db.ts that imports Prisma (would fail in static build)
+          echo "// Prisma not available in static export" > src/lib/db.ts
+
       - name: Build static export
         run: bun run build
-        env:
-          GITHUB_PAGES: "true"
-          DATABASE_URL: "file:./db/custom.db"
+
+      - name: Add .nojekyll
+        run: touch ./out/.nojekyll
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
