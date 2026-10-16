@@ -35,13 +35,11 @@ jobs:
       - name: Remove API routes (not supported in static export)
         run: rm -rf src/app/api
 
-      - name: Remove Prisma imports (not needed for static)
-        run: |
-          # Remove db.ts that imports Prisma (would fail in static build)
-          echo "// Prisma not available in static export" > src/lib/db.ts
+      - name: Stub out Prisma db import (not needed for static)
+        run: echo "// Prisma not available in static export" > src/lib/db.ts
 
-      - name: Build static export
-        run: bun run build
+      - name: Build static export (use npx to skip custom build script)
+        run: npx next build
 
       - name: Add .nojekyll
         run: touch ./out/.nojekyll
