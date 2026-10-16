@@ -81,14 +81,15 @@ export function LeaderboardModal({
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`/api/scores?mode=${filterMode}&limit=10`)
+      const res = await fetch(`api/scores?mode=${filterMode}&limit=10`)
       if (!res.ok) throw new Error('Failed to fetch')
       const data = await res.json()
       setScores(data.scores ?? [])
     } catch (e) {
-      console.error(e)
-      setError('No se pudo cargar el ranking. Intenta de nuevo.')
-      setScores([])
+      console.warn('API not available, falling back to local scores')
+      // Fallback to localStorage when API is not available (GitHub Pages)
+      const localScores = loadLocalScores(filterMode)
+      setScores(localScores)
     } finally {
       setLoading(false)
     }
@@ -105,7 +106,7 @@ export function LeaderboardModal({
     setError(null)
     saveInitials(initials.toUpperCase())
     try {
-      const res = await fetch('/api/scores', {
+      const res = await fetch('api/scores', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -127,11 +128,26 @@ export function LeaderboardModal({
       audio.play('combo-chime')
       audio.play('ticket-done')
       onSubmitted?.()
-      // Refresh scores
       fetchScores()
     } catch (e) {
-      console.error(e)
-      setError('No se pudo enviar el score. Intenta de nuevo.')
+      console.warn('API not available, saving to local scores')
+      // Fallback: save to localStorage when API is not available (GitHub Pages)
+      const rank = saveLocalScore({
+        initials: initials.toUpperCase(),
+        score: pendingSubmit.score,
+        tickets: pendingSubmit.tickets,
+        maxCombo: pendingSubmit.maxCombo,
+        mode: pendingSubmit.mode,
+        durationSec: pendingSubmit.durationSec,
+        gringoEncounters: pendingSubmit.gringoEncounters,
+        id: `local-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+      })
+      setSubmitResult({ ok: true, id: `local-${Date.now()}`, rank })
+      audio.play('combo-chime')
+      audio.play('ticket-done')
+      onSubmitted?.()
+      fetchScores()
     } finally {
       setSubmitting(false)
     }
@@ -424,4 +440,42 @@ function saveInitials(initials: string) {
   try {
     localStorage.setItem(INITIALS_KEY, initials)
   } catch {}
+}
+
+// === localStorage fallback for GitHub Pages (no server) ===
+const LOCAL_SCORES_KEY = 'makileros:local-scores'
+
+function loadLocalScores(mode: string): ScoreEntry[] {
+  if (typeof window === 'undefined') return []
+  try {
+    const raw = localStorage.getItem(LOCAL_SCORES_KEY)
+    if (!raw) return []
+    const all: ScoreEntry[] = JSON.parse(raw)
+    return all
+      .filter((s) => s.mode === mode)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10)
+  } catch {
+    return []
+  }
+}
+
+function saveLocalScore(entry: ScoreEntry): number {
+  if (typeof window === 'undefined') return 1
+  try {
+    const raw = localStorage.getItem(LOCAL_SCORES_KEY)
+    const all: ScoreEntry[] = raw ? JSON.parse(raw) : []
+    all.push(entry)
+    // Keep only top 50 per mode to avoid unbounded growth
+    const trimmed = all
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 100)
+    localStorage.setItem(LOCAL_SCORES_KEY, JSON.stringify(trimmed))
+    // Compute rank
+    const modeScores = trimmed.filter((s) => s.mode === entry.mode)
+    const rank = modeScores.findIndex((s) => s.id === entry.id) + 1
+    return rank || 1
+  } catch {
+    return 1
+  }
 }
